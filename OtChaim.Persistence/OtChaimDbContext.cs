@@ -60,7 +60,20 @@ public class OtChaimDbContext(DbContextOptions<OtChaimDbContext> options) : DbCo
         modelBuilder.Entity<User>(builder =>
         {
             builder.HasKey(u => u.Id);
+            builder.Property(u => u.Name);
+            builder.Property(u => u.Email);
+            builder.Property(u => u.PhoneNumber);
+            builder.Property(u => u.Birthday);
+            builder.Property(u => u.WeightKg);
+            builder.Property(u => u.BloodType);
+            builder.Property(u => u.Address);
             builder.OwnsOne(u => u.CurrentLocation, ConfigureLocation);
+            builder.Property(u => u.ProfilePicturePath);
+            builder.OwnsOne(u => u.PersonName, pn =>
+            {
+                pn.Property(p => p.First);
+                pn.Property(p => p.Last);
+            });
             builder.OwnsMany(u => u.NotificationChannels, nc =>
             {
                 nc.Property(n => n.ChannelType);

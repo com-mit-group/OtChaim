@@ -12,7 +12,7 @@
             <Label Text="User Information"
                    FontFamily="OpenSansSemibold"
                    FontSize="24"
-                   TextColor="{StaticResource White}" />
+                   Style="{StaticResource PrimaryHeadline} />
 
             <Frame BackgroundColor="{StaticResource White}" CornerRadius="16" Padding="16">
                 <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
@@ -150,8 +150,6 @@
                         Command="{Binding ResetProfileCommand}"
                         Style="{StaticResource MessageButton}" />
             </Grid>
-
         </VerticalStackLayout>
     </ScrollView>
-
 </ContentView>

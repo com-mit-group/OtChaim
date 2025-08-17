@@ -11,7 +11,7 @@ namespace OtChaim.Domain.Users;
 public class User : Entity
 {
     /// <summary>
-    /// Gets the user's name.
+    /// Gets the user's combined name for backward compatibility (First + Last).
     /// </summary>
     public string Name { get; private set; } = string.Empty;
     /// <summary>
@@ -34,6 +34,8 @@ public class User : Entity
     /// Gets a value indicating whether the user is active.
     /// </summary>
     public bool IsActive { get; private set; }
+
+    public PersonName PersonName { get; private set; } = PersonName.Empty;
     /// <summary>
     /// Gets the user's birth date if provided.
     /// </summary>
@@ -175,6 +177,45 @@ public class User : Entity
     }
 
     /// <summary>
+    /// Updates the extended profile information of the user.
+    /// </summary>
+    public void UpdateProfile(
+        string firstName,
+        string lastName,
+        DateTime? birthday,
+        double? weightKg,
+        string bloodType,
+        string address,
+        Location? currentLocation,
+        string profilePicturePath,
+        string phone,
+        string email)
+    {
+        // Update Name object
+        if (!string.IsNullOrWhiteSpace(firstName) || !string.IsNullOrWhiteSpace(lastName))
+        {
+            PersonName = new PersonName(firstName ?? string.Empty, lastName ?? string.Empty);
+            Name = PersonName.Full; // keep legacy aggregate string
+        }
+
+        if (birthday.HasValue && birthday.Value > DateTime.UtcNow.AddDays(1))
+            throw new ArgumentException("Birthday cannot be in the future", nameof(birthday));
+        Birthday = birthday;
+
+        if (weightKg.HasValue && weightKg.Value <= 0)
+            throw new ArgumentException("Weight must be positive", nameof(weightKg));
+        WeightKg = weightKg;
+
+        if (!string.IsNullOrWhiteSpace(bloodType)) BloodType = bloodType.Trim().ToUpperInvariant();
+        if (!string.IsNullOrWhiteSpace(address)) Address = address.Trim();
+        CurrentLocation = currentLocation;
+        if (!string.IsNullOrWhiteSpace(profilePicturePath)) ProfilePicturePath = profilePicturePath;
+
+        if (!string.IsNullOrWhiteSpace(phone)) PhoneNumber = phone.Trim();
+        if (!string.IsNullOrWhiteSpace(email)) Email = email.Trim();
+    }
+
+    /// <summary>
     /// Adds a subscriber to the user.
     /// </summary>
     public void AddSubscriber(Guid subscriberId)
@@ -227,7 +268,7 @@ public class User : Entity
     /// </summary>
     public void OnSubscriptionRequested(SubscriptionRequested subscriptionEvent)
     {
-        Subscription? subscription = new Subscription(subscriptionEvent.SubscriberId, subscriptionEvent.SubscribedToId, RequiresSubscriptionApproval());
+        Subscription subscription = new(subscriptionEvent.SubscriberId, subscriptionEvent.SubscribedToId, RequiresSubscriptionApproval());
         _subscriptions.Add(subscription);
     }
 
