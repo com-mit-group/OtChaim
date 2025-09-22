@@ -121,7 +121,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// This preference is stored in the emergency attachments for processing.
     /// </remarks>
     [ObservableProperty]
-    private bool _sendMessenger = true;
+    private bool _sendMessenger = false;
 
     /// <summary>
     /// Gets or sets a value indicating whether personal information should be attached.
@@ -249,9 +249,12 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
         LocationDescription = string.Empty;
         Latitude = 0;
         Longitude = 0;
-        SendEmail = true;
-        SendSms = true;
-        SendMessenger = false;
+        IsEmailSelected = true;
+        SendEmail = IsEmailSelected;
+        IsSmsSelected = true;
+        SendSms = IsSmsSelected;
+        IsMessengerSelected = false;
+        SendMessenger = IsMessengerSelected;
         AttachPersonalInfo = true;
         AttachMedicalInfo = true;
         AttachGps = true;
@@ -259,9 +262,6 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
         AttachedDocumentPath = string.Empty;
         IsGroupSelected = true;
         IsSingleSelected = false;
-        IsEmailSelected = true;
-        IsSmsSelected = true;
-        IsMessengerSelected = false;
     }
 
     [RelayCommand]
@@ -306,6 +306,9 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// this command will remove it instead.
     /// </remarks>
     [RelayCommand]
+#if UNIT_TESTS
+    private Task TogglePictureAsync() => Task.CompletedTask;
+#else
     private async Task TogglePictureAsync()
     {
         try
@@ -328,6 +331,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
             System.Diagnostics.Debug.WriteLine($"Error picking photo: {ex.Message}");
         }
     }
+#endif
 
     /// <summary>
     /// Command to add or remove a document attachment to the emergency.
@@ -338,6 +342,9 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// this command will remove it instead.
     /// </remarks>
     [RelayCommand]
+#if UNIT_TESTS
+    private Task ToggleDocumentAsync() => Task.CompletedTask;
+#else
     private async Task ToggleDocumentAsync()
     {
         try
@@ -360,6 +367,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
             System.Diagnostics.Debug.WriteLine($"Error picking document: {ex.Message}");
         }
     }
+#endif
 
     /// <summary>
     /// Command to toggle the personal information attachment.
@@ -420,18 +428,21 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     private void ToggleEmail()
     {
         IsEmailSelected = !IsEmailSelected;
+        SendEmail = IsEmailSelected;
     }
 
     [RelayCommand]
     private void ToggleSms()
     {
         IsSmsSelected = !IsSmsSelected;
+        SendSms = IsSmsSelected;
     }
 
     [RelayCommand]
     private void ToggleMessenger()
     {
         IsMessengerSelected = !IsMessengerSelected;
+        SendMessenger = IsMessengerSelected;
     }
 
     [RelayCommand]
@@ -525,6 +536,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     [RelayCommand]
     private void Cancel()
     {
+        ResetCreateEmergencyFields();
         Cancelled?.Invoke(this, EventArgs.Empty);
     }
 }
