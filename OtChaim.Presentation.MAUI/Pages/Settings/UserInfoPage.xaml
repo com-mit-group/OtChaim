@@ -8,93 +8,146 @@
 
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="20">
-            
-            <!-- Profile Picture Section -->
+
+            <Label Text="User Information"
+                   FontFamily="OpenSansSemibold"
+                   FontSize="24"
+                   TextColor="{StaticResource White}" />
+
             <Frame BackgroundColor="{StaticResource White}" CornerRadius="16" Padding="16">
                 <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
-                    <Image Source="profile_picture.png" HeightRequest="100" WidthRequest="100" 
-                           HorizontalOptions="Center" />
-                    <Label Text="choose pic" FontSize="16" TextColor="{StaticResource Gray600}" 
-                           HorizontalOptions="Center" />
+                    <Border HeightRequest="120" WidthRequest="120" StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="60" />
+                        </Border.StrokeShape>
+                        <Image Source="{Binding ProfileImage}"
+                               Aspect="AspectFill" />
+                    </Border>
+
+                    <HorizontalStackLayout Spacing="12">
+                        <Button Text="Choose Pic"
+                                Command="{Binding ChooseProfilePictureCommand}"
+                                Style="{StaticResource MessageButton}" />
+                        <Button Text="Remove"
+                                Command="{Binding RemoveProfilePictureCommand}"
+                                Style="{StaticResource MessageButton}"
+                                IsVisible="{Binding HasProfilePicture}" />
+                    </HorizontalStackLayout>
+
+                    <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                        IsVisible="{Binding IsBusy}" />
                 </VerticalStackLayout>
             </Frame>
 
-            <!-- Personal Information Form -->
             <Frame BackgroundColor="{StaticResource White}" CornerRadius="16" Padding="16">
                 <VerticalStackLayout Spacing="16">
-                    <Label Text="Personal Information" FontSize="18" FontFamily="OpenSansSemibold" />
-                    
-                    <!-- First Name -->
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="First name:" FontSize="16" />
-                        <Entry Text="{Binding FirstName}" Placeholder="Enter first name" FontSize="18" />
+                    <Label Text="Personal Information"
+                           FontSize="18"
+                           FontFamily="OpenSansSemibold" />
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="First Name"
+                               FontSize="16" />
+                        <Entry Text="{Binding FirstName}"
+                               Placeholder="Enter first name"
+                               FontSize="18" />
                     </VerticalStackLayout>
-                    
-                    <!-- Last Name -->
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Last Name:" FontSize="16" />
-                        <Entry Text="{Binding LastName}" Placeholder="Enter last name" FontSize="18" />
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Last Name"
+                               FontSize="16" />
+                        <Entry Text="{Binding LastName}"
+                               Placeholder="Enter last name"
+                               FontSize="18" />
                     </VerticalStackLayout>
-                    
-                    <!-- Birthday -->
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Birthday:" FontSize="16" />
-                        <DatePicker Date="{Binding Birthday}" FontSize="18" />
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Birthday"
+                               FontSize="16" />
+                        <DatePicker Date="{Binding Birthday}"
+                                    FontSize="18" />
                     </VerticalStackLayout>
-                    
-                    <!-- Weight -->
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Weight:" FontSize="16" />
-                        <Entry Text="{Binding Weight}" Placeholder="Enter weight" FontSize="18" Keyboard="Numeric" />
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Weight (kg)"
+                               FontSize="16" />
+                        <Entry Text="{Binding Weight}"
+                               Placeholder="Enter weight"
+                               FontSize="18"
+                               Keyboard="Numeric" />
                     </VerticalStackLayout>
-                    
-                    <!-- Blood Type -->
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Bloodtype:" FontSize="16" />
-                        <Picker Title="Select blood type" SelectedItem="{Binding SelectedBloodType}" 
-                                ItemsSource="{Binding BloodTypes}" FontSize="18" />
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Blood Type"
+                               FontSize="16" />
+                        <Picker Title="Select blood type"
+                                SelectedItem="{Binding SelectedBloodType}"
+                                ItemsSource="{Binding BloodTypes}"
+                                FontSize="18" />
                     </VerticalStackLayout>
                 </VerticalStackLayout>
             </Frame>
 
-            <!-- Contact Information Display -->
             <Frame BackgroundColor="{StaticResource White}" CornerRadius="16" Padding="16">
                 <VerticalStackLayout Spacing="16">
-                    <Label Text="Contact Information" FontSize="18" FontFamily="OpenSansSemibold" />
-                    
-                    <!-- Address -->
+                    <Label Text="Contact Information"
+                           FontSize="18"
+                           FontFamily="OpenSansSemibold" />
+
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Address:" FontSize="16" />
-                        <Label Text="{Binding Address}" FontSize="18" TextColor="{StaticResource Gray600}" />
+                        <Label Text="Address"
+                               FontSize="16" />
+                        <Label Text="{Binding Address}"
+                               FontSize="18"
+                               TextColor="{StaticResource Gray600}" />
                     </VerticalStackLayout>
-                    
-                    <!-- Current Location -->
+
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Current Location:" FontSize="16" />
-                        <Label Text="{Binding CurrentLocation}" FontSize="18" TextColor="{StaticResource Gray600}" />
+                        <Label Text="Current Location"
+                               FontSize="16" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Label Text="{Binding CurrentLocation}"
+                                   FontSize="18"
+                                   TextColor="{StaticResource Gray600}"
+                                   Grid.Column="0" />
+                            <Button Text="Update GPS"
+                                    Command="{Binding RefreshLocationCommand}"
+                                    Style="{StaticResource MessageButton}"
+                                    Grid.Column="1" />
+                        </Grid>
                     </VerticalStackLayout>
-                    
-                    <!-- Phone -->
+
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Phone:" FontSize="16" />
-                        <Label Text="{Binding Phone}" FontSize="18" TextColor="{StaticResource Gray600}" />
+                        <Label Text="Phone"
+                               FontSize="16" />
+                        <Label Text="{Binding Phone}"
+                               FontSize="18"
+                               TextColor="{StaticResource Gray600}" />
                     </VerticalStackLayout>
-                    
-                    <!-- Email -->
+
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Mail:" FontSize="16" />
-                        <Label Text="{Binding Email}" FontSize="18" TextColor="{StaticResource Gray600}" />
+                        <Label Text="Email"
+                               FontSize="16" />
+                        <Label Text="{Binding Email}"
+                               FontSize="18"
+                               TextColor="{StaticResource Gray600}" />
                     </VerticalStackLayout>
                 </VerticalStackLayout>
             </Frame>
 
-            <!-- Management Buttons -->
+            <Label Text="{Binding StatusMessage}"
+                   TextColor="{Binding StatusMessageColor}"
+                   FontSize="16"
+                   IsVisible="{Binding HasStatusMessage}" />
+
             <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                <Button Grid.Column="0" Text="+" 
-                        Command="{Binding AddInfoCommand}"
+                <Button Grid.Column="0"
+                        Text="+"
+                        Command="{Binding SaveProfileCommand}"
                         Style="{StaticResource MessageButton}" />
-                <Button Grid.Column="1" Text="-" 
-                        Command="{Binding RemoveInfoCommand}"
+                <Button Grid.Column="1"
+                        Text="-"
+                        Command="{Binding ResetProfileCommand}"
                         Style="{StaticResource MessageButton}" />
             </Grid>
 

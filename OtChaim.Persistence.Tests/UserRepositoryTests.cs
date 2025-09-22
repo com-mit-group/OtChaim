@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using OtChaim.Domain.Common;
 using OtChaim.Domain.Users;
 
 namespace OtChaim.Persistence.Tests;
@@ -31,6 +32,15 @@ public class UserRepositoryTests
     {
         // Arrange
         User user = new User("test", "test@example.com", "00000000");
+        user.UpdatePersonalProfile(
+            "test",
+            "user",
+            new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            72.5,
+            "O+",
+            "123 Main Street",
+            new Location(32.0853, 34.7818, "Home"),
+            "profile.jpg");
 
         // Act
         await _repository.AddAsync(user);
@@ -39,6 +49,14 @@ public class UserRepositoryTests
         // Assert
         loaded.Should().NotBeNull();
         loaded.Id.Should().Be(user.Id);
+        loaded.FirstName.Should().Be("test");
+        loaded.LastName.Should().Be("user");
+        loaded.BloodType.Should().Be("O+");
+        loaded.WeightInKg.Should().Be(72.5);
+        loaded.Address.Should().Be("123 Main Street");
+        loaded.ProfilePicturePath.Should().Be("profile.jpg");
+        loaded.CurrentLocation.Latitude.Should().BeApproximately(32.0853, 0.0001);
+        loaded.CurrentLocation.Longitude.Should().BeApproximately(34.7818, 0.0001);
     }
 
     [Test]
