@@ -131,6 +131,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// to the emergency notification. This can be toggled on/off by the user.
     /// </remarks>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPersonalInfoAttached))]
     private bool _attachPersonalInfo = true;
 
     /// <summary>
@@ -141,6 +142,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// to the emergency notification. This can be toggled on/off by the user.
     /// </remarks>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMedicalInfoAttached))]
     private bool _attachMedicalInfo = true;
 
     /// <summary>
@@ -151,6 +153,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// to the emergency notification. This can be toggled on/off by the user.
     /// </remarks>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsGpsAttached))]
     private bool _attachGps = true;
 
     /// <summary>
@@ -161,6 +164,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// by the user to be attached to the emergency notification.
     /// </remarks>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPictureAttached))]
     private string _attachedPicturePath = string.Empty;
 
     /// <summary>
@@ -171,6 +175,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// by the user to be attached to the emergency notification.
     /// </remarks>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDocumentAttached))]
     private string _attachedDocumentPath = string.Empty;
 
     /// <summary>
