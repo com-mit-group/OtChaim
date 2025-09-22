@@ -1,6 +1,7 @@
+using System;
+using System.Collections.ObjectModel;
 using OtChaim.Domain.EmergencyEvents;
 using OtChaim.Domain.Users;
-using System.Collections.ObjectModel;
 
 namespace OtChaim.Application.Services;
 
@@ -23,9 +24,15 @@ public class EmergencyDataService(IEmergencyRepository emergencyRepository, IUse
     /// <param name="emergencies">The collection to populate with active emergencies.</param>
     public async Task LoadActiveEmergenciesAsync(ObservableCollection<Emergency> emergencies)
     {
+        if (emergencies is null)
+        {
+            return;
+        }
+
         try
         {
-            IReadOnlyList<Emergency> allEmergencies = await _emergencyRepository.GetActiveAsync();
+            IReadOnlyList<Emergency> allEmergencies =
+                await _emergencyRepository.GetActiveAsync() ?? Array.Empty<Emergency>();
             emergencies.Clear();
             foreach (Emergency emergency in allEmergencies)
             {
@@ -44,9 +51,15 @@ public class EmergencyDataService(IEmergencyRepository emergencyRepository, IUse
     /// <param name="users">The collection to populate with users.</param>
     public async Task LoadUsersAsync(ObservableCollection<User> users)
     {
+        if (users is null)
+        {
+            return;
+        }
+
         try
         {
-            IReadOnlyList<User> allUsers = await _userRepository.GetAllAsync();
+            IReadOnlyList<User> allUsers =
+                await _userRepository.GetAllAsync() ?? Array.Empty<User>();
             users.Clear();
             foreach (User user in allUsers)
             {
