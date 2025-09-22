@@ -22,6 +22,7 @@ public class UserTests
         user.FirstName.Should().Be("John");
         user.LastName.Should().Be("Doe");
         user.Name.Should().Be("John Doe");
+        user.PersonName.Full.Should().Be("John Doe");
         user.BirthDate.Should().Be(birthDate.Date);
         user.WeightInKg.Should().Be(82.3);
         user.BloodType.Should().Be("O-");
@@ -61,5 +62,27 @@ public class UserTests
 
         user.Email.Should().Be("updated@example.com");
         user.PhoneNumber.Should().Be("987654321");
+    }
+
+    [Test]
+    public void Constructor_ShouldNormalizePersonName()
+    {
+        User user = new User("  Alice   Cooper ", "alice@example.com", "123456789");
+
+        user.PersonName.First.Should().Be("Alice");
+        user.PersonName.Last.Should().Be("Cooper");
+        user.Name.Should().Be("Alice Cooper");
+    }
+
+    [Test]
+    public void UpdateProfile_WithPartialName_ShouldPreserveExistingParts()
+    {
+        User user = new User("Jane Doe", "jane@example.com", "123456789");
+
+        user.UpdateProfile(null, "Smith", null, null, null, null, null, null, null, null);
+
+        user.PersonName.Full.Should().Be("Jane Smith");
+        user.FirstName.Should().Be("Jane");
+        user.LastName.Should().Be("Smith");
     }
 }

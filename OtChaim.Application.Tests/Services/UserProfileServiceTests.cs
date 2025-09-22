@@ -46,6 +46,7 @@ public class UserProfileServiceTests
         await _userRepository.Received(1).AddAsync(result, Arg.Any<CancellationToken>());
         result.FirstName.Should().Be("Finn");
         result.LastName.Should().Be("Mond");
+        result.PersonName.Full.Should().Be("Finn Mond");
         result.Email.Should().Be("Finn@moon.com");
     }
 

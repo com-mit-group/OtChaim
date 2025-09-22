@@ -51,6 +51,7 @@ public class UserRepositoryTests
         loaded.Id.Should().Be(user.Id);
         loaded.FirstName.Should().Be("test");
         loaded.LastName.Should().Be("user");
+        loaded.PersonName.Full.Should().Be("test user");
         loaded.BloodType.Should().Be("O+");
         loaded.WeightInKg.Should().Be(72.5);
         loaded.Address.Should().Be("123 Main Street");

@@ -11,17 +11,21 @@ namespace OtChaim.Domain.Users;
 public class User : Entity
 {
     /// <summary>
+    /// Gets the structured representation of the user's name.
+    /// </summary>
+    public PersonName PersonName { get; private set; } = PersonName.Empty;
+    /// <summary>
     /// Gets the user's combined name for backward compatibility (First + Last).
     /// </summary>
-    public string Name { get; private set; } = string.Empty;
+    public string Name => PersonName.Full;
     /// <summary>
     /// Gets the user's first name.
     /// </summary>
-    public string FirstName { get; private set; } = string.Empty;
+    public string FirstName => PersonName.First;
     /// <summary>
     /// Gets the user's last name.
     /// </summary>
-    public string LastName { get; private set; } = string.Empty;
+    public string LastName => PersonName.Last;
     /// <summary>
     /// Gets the user's email address.
     /// </summary>
@@ -34,8 +38,6 @@ public class User : Entity
     /// Gets a value indicating whether the user is active.
     /// </summary>
     public bool IsActive { get; private set; }
-
-    public PersonName PersonName { get; private set; } = PersonName.Empty;
     /// <summary>
     /// Gets the user's birth date if provided.
     /// </summary>
@@ -180,27 +182,30 @@ public class User : Entity
     /// Updates the extended profile information of the user.
     /// </summary>
     public void UpdateProfile(
-        string firstName,
-        string lastName,
+        string? firstName,
+        string? lastName,
         DateTime? birthday,
         double? weightKg,
-        string bloodType,
-        string address,
+        string? bloodType,
+        string? address,
         Location? currentLocation,
-        string profilePicturePath,
-        string phone,
-        string email)
+        string? profilePicturePath,
+        string? phone,
+        string? email)
     {
-        // Update Name object
-        if (!string.IsNullOrWhiteSpace(firstName) || !string.IsNullOrWhiteSpace(lastName))
+        string? trimmedFirstName = firstName?.Trim();
+        string? trimmedLastName = lastName?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(trimmedFirstName) || !string.IsNullOrWhiteSpace(trimmedLastName))
         {
-            PersonName = new PersonName(firstName ?? string.Empty, lastName ?? string.Empty);
-            Name = PersonName.Full; // keep legacy aggregate string
+            string newFirst = string.IsNullOrWhiteSpace(trimmedFirstName) ? PersonName.First : trimmedFirstName;
+            string newLast = string.IsNullOrWhiteSpace(trimmedLastName) ? PersonName.Last : trimmedLastName;
+            PersonName = new PersonName(newFirst, newLast);
         }
 
-        if (birthday.HasValue && birthday.Value > DateTime.UtcNow.AddDays(1))
+        if (birthday.HasValue && birthday.Value.Date > DateTime.UtcNow.Date)
             throw new ArgumentException("Birthday cannot be in the future", nameof(birthday));
-        BirthDate = birthday;
+        BirthDate = birthday?.Date;
 
         if (weightKg.HasValue && weightKg.Value <= 0)
             throw new ArgumentException("Weight must be positive", nameof(weightKg));
@@ -208,8 +213,11 @@ public class User : Entity
 
         if (!string.IsNullOrWhiteSpace(bloodType)) BloodType = bloodType.Trim().ToUpperInvariant();
         if (!string.IsNullOrWhiteSpace(address)) Address = address.Trim();
-        CurrentLocation = currentLocation;
-        if (!string.IsNullOrWhiteSpace(profilePicturePath)) ProfilePicturePath = profilePicturePath;
+        if (currentLocation is not null)
+        {
+            CurrentLocation = currentLocation.Clone();
+        }
+        if (!string.IsNullOrWhiteSpace(profilePicturePath)) ProfilePicturePath = profilePicturePath.Trim();
 
         if (!string.IsNullOrWhiteSpace(phone)) PhoneNumber = phone.Trim();
         if (!string.IsNullOrWhiteSpace(email)) Email = email.Trim();
@@ -292,30 +300,11 @@ public class User : Entity
 
     private void SetNameFromFullName(string name)
     {
-        string trimmedName = name.Trim();
-        Name = trimmedName;
-
-        if (string.IsNullOrWhiteSpace(trimmedName))
-        {
-            FirstName = string.Empty;
-            LastName = string.Empty;
-            return;
-        }
-
-        string[] parts = trimmedName
-            .Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-        FirstName = parts.Length > 0 ? parts[0] : trimmedName;
-        LastName = parts.Length > 1 ? parts[1] : string.Empty;
+        PersonName = PersonName.FromFullName(name);
     }
 
     private void UpdateNameFromParts(string firstName, string lastName)
     {
-        FirstName = firstName.Trim();
-        LastName = lastName.Trim();
-
-        string combinedName = string.Join(" ", new[] { FirstName, LastName }
-            .Where(part => !string.IsNullOrWhiteSpace(part)));
-
-        Name = combinedName;
+        PersonName = new PersonName(firstName, lastName);
     }
 }
