@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
@@ -80,6 +81,106 @@ public class EmergencyCreationViewModelTests
         viewModel.SendSms.Should().BeTrue();
         viewModel.IsMessengerSelected.Should().BeFalse();
         viewModel.SendMessenger.Should().BeFalse();
+    }
+
+    [Test]
+    public void TogglePersonalInfoCommand_NotifiesVisualStateBindings()
+    {
+        var handler = new RecordingStartEmergencyHandler();
+        var viewModel = new EmergencyCreationViewModel(handler);
+        var changedProperties = new List<string>();
+        viewModel.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName ?? string.Empty);
+
+        viewModel.TogglePersonalInfoCommand.Execute(null);
+
+        viewModel.IsPersonalInfoAttached.Should().BeFalse();
+        changedProperties.Should().Contain(nameof(EmergencyCreationViewModel.IsPersonalInfoAttached));
+
+        changedProperties.Clear();
+        viewModel.TogglePersonalInfoCommand.Execute(null);
+
+        viewModel.IsPersonalInfoAttached.Should().BeTrue();
+        changedProperties.Should().Contain(nameof(EmergencyCreationViewModel.IsPersonalInfoAttached));
+    }
+
+    [Test]
+    public void ToggleMedicalInfoCommand_NotifiesVisualStateBindings()
+    {
+        var handler = new RecordingStartEmergencyHandler();
+        var viewModel = new EmergencyCreationViewModel(handler);
+        var changedProperties = new List<string>();
+        viewModel.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName ?? string.Empty);
+
+        viewModel.ToggleMedicalInfoCommand.Execute(null);
+
+        viewModel.IsMedicalInfoAttached.Should().BeFalse();
+        changedProperties.Should().Contain(nameof(EmergencyCreationViewModel.IsMedicalInfoAttached));
+
+        changedProperties.Clear();
+        viewModel.ToggleMedicalInfoCommand.Execute(null);
+
+        viewModel.IsMedicalInfoAttached.Should().BeTrue();
+        changedProperties.Should().Contain(nameof(EmergencyCreationViewModel.IsMedicalInfoAttached));
+    }
+
+    [Test]
+    public void ToggleGpsCommand_NotifiesVisualStateBindings()
+    {
+        var handler = new RecordingStartEmergencyHandler();
+        var viewModel = new EmergencyCreationViewModel(handler);
+        var changedProperties = new List<string>();
+        viewModel.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName ?? string.Empty);
+
+        viewModel.ToggleGpsCommand.Execute(null);
+
+        viewModel.IsGpsAttached.Should().BeFalse();
+        changedProperties.Should().Contain(nameof(EmergencyCreationViewModel.IsGpsAttached));
+
+        changedProperties.Clear();
+        viewModel.ToggleGpsCommand.Execute(null);
+
+        viewModel.IsGpsAttached.Should().BeTrue();
+        changedProperties.Should().Contain(nameof(EmergencyCreationViewModel.IsGpsAttached));
+    }
+
+    [Test]
+    public void AttachedPicturePath_NotifiesVisualStateBindings()
+    {
+        var handler = new RecordingStartEmergencyHandler();
+        var viewModel = new EmergencyCreationViewModel(handler);
+        var changedProperties = new List<string>();
+        viewModel.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName ?? string.Empty);
+
+        viewModel.AttachedPicturePath = "picture.jpg";
+
+        viewModel.IsPictureAttached.Should().BeTrue();
+        changedProperties.Should().Contain(nameof(EmergencyCreationViewModel.IsPictureAttached));
+
+        changedProperties.Clear();
+        viewModel.AttachedPicturePath = string.Empty;
+
+        viewModel.IsPictureAttached.Should().BeFalse();
+        changedProperties.Should().Contain(nameof(EmergencyCreationViewModel.IsPictureAttached));
+    }
+
+    [Test]
+    public void AttachedDocumentPath_NotifiesVisualStateBindings()
+    {
+        var handler = new RecordingStartEmergencyHandler();
+        var viewModel = new EmergencyCreationViewModel(handler);
+        var changedProperties = new List<string>();
+        viewModel.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName ?? string.Empty);
+
+        viewModel.AttachedDocumentPath = "document.pdf";
+
+        viewModel.IsDocumentAttached.Should().BeTrue();
+        changedProperties.Should().Contain(nameof(EmergencyCreationViewModel.IsDocumentAttached));
+
+        changedProperties.Clear();
+        viewModel.AttachedDocumentPath = string.Empty;
+
+        viewModel.IsDocumentAttached.Should().BeFalse();
+        changedProperties.Should().Contain(nameof(EmergencyCreationViewModel.IsDocumentAttached));
     }
 
     private sealed class RecordingStartEmergencyHandler : ICommandHandler<StartEmergency>
