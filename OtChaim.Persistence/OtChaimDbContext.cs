@@ -60,7 +60,9 @@ public class OtChaimDbContext(DbContextOptions<OtChaimDbContext> options) : DbCo
         modelBuilder.Entity<User>(builder =>
         {
             builder.HasKey(u => u.Id);
-            builder.Property(u => u.Name);
+            builder.Ignore(u => u.Name);
+            builder.Ignore(u => u.FirstName);
+            builder.Ignore(u => u.LastName);
             builder.Property(u => u.Email);
             builder.Property(u => u.PhoneNumber);
             builder.Property(u => u.BirthDate);
