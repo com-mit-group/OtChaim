@@ -60,6 +60,7 @@ public class OtChaimDbContext(DbContextOptions<OtChaimDbContext> options) : DbCo
         modelBuilder.Entity<User>(builder =>
         {
             builder.HasKey(u => u.Id);
+            builder.OwnsOne(u => u.CurrentLocation, ConfigureLocation);
             builder.OwnsMany(u => u.NotificationChannels, nc =>
             {
                 nc.Property(n => n.ChannelType);

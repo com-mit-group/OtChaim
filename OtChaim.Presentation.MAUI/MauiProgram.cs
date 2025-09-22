@@ -35,6 +35,7 @@ public static class MauiProgram
 
         // Register application serviceProvider
         builder.Services.AddSingleton<EmergencyDataService>();
+        builder.Services.AddSingleton<UserProfileService>();
 
         // Register view models
         builder.Services.AddTransient<EmergencyDashboardViewModel>();

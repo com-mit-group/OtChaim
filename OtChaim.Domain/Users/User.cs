@@ -1,6 +1,7 @@
 using OtChaim.Domain.Common;
 using OtChaim.Domain.Notifications;
 using OtChaim.Domain.Users.Events;
+using System.Linq;
 
 namespace OtChaim.Domain.Users;
 
@@ -14,6 +15,14 @@ public class User : Entity
     /// </summary>
     public string Name { get; private set; } = string.Empty;
     /// <summary>
+    /// Gets the user's first name.
+    /// </summary>
+    public string FirstName { get; private set; } = string.Empty;
+    /// <summary>
+    /// Gets the user's last name.
+    /// </summary>
+    public string LastName { get; private set; } = string.Empty;
+    /// <summary>
     /// Gets the user's email address.
     /// </summary>
     public string Email { get; private set; } = string.Empty;
@@ -25,6 +34,30 @@ public class User : Entity
     /// Gets a value indicating whether the user is active.
     /// </summary>
     public bool IsActive { get; private set; }
+    /// <summary>
+    /// Gets the user's birth date if provided.
+    /// </summary>
+    public DateTime? BirthDate { get; private set; }
+    /// <summary>
+    /// Gets the user's weight in kilograms if provided.
+    /// </summary>
+    public double? WeightInKg { get; private set; }
+    /// <summary>
+    /// Gets the user's blood type.
+    /// </summary>
+    public string BloodType { get; private set; } = string.Empty;
+    /// <summary>
+    /// Gets the user's home address.
+    /// </summary>
+    public string Address { get; private set; } = string.Empty;
+    /// <summary>
+    /// Gets the user's current location.
+    /// </summary>
+    public Location CurrentLocation { get; private set; } = Location.Empty;
+    /// <summary>
+    /// Gets the path to the user's profile picture if one is set.
+    /// </summary>
+    public string ProfilePicturePath { get; private set; } = string.Empty;
     private readonly List<Guid> _subscriberIds = [];
     /// <summary>
     /// Gets the list of subscriber IDs.
@@ -63,10 +96,82 @@ public class User : Entity
             throw new ArgumentException("Phone number cannot be empty", nameof(phoneNumber));
 
         Id = Guid.NewGuid();
-        Name = name;
+        SetNameFromFullName(name);
         Email = email;
         PhoneNumber = phoneNumber;
         IsActive = true;
+    }
+
+    /// <summary>
+    /// Updates the core personal profile information for the user.
+    /// </summary>
+    /// <param name="firstName">The first name.</param>
+    /// <param name="lastName">The last name.</param>
+    /// <param name="birthDate">The optional birth date.</param>
+    /// <param name="weightInKg">The optional weight in kilograms.</param>
+    /// <param name="bloodType">The blood type.</param>
+    /// <param name="address">The home address.</param>
+    /// <param name="currentLocation">The current GPS location.</param>
+    /// <param name="profilePicturePath">The path to the profile picture.</param>
+    public void UpdatePersonalProfile(
+        string firstName,
+        string lastName,
+        DateTime? birthDate,
+        double? weightInKg,
+        string bloodType,
+        string address,
+        Location? currentLocation,
+        string? profilePicturePath)
+    {
+        if (string.IsNullOrWhiteSpace(firstName))
+        {
+            throw new ArgumentException("First name cannot be empty", nameof(firstName));
+        }
+
+        if (string.IsNullOrWhiteSpace(lastName))
+        {
+            throw new ArgumentException("Last name cannot be empty", nameof(lastName));
+        }
+
+        if (birthDate.HasValue && birthDate.Value.Date > DateTime.UtcNow.Date)
+        {
+            throw new ArgumentException("Birth date cannot be in the future", nameof(birthDate));
+        }
+
+        if (weightInKg.HasValue && weightInKg.Value <= 0)
+        {
+            throw new ArgumentException("Weight must be greater than zero", nameof(weightInKg));
+        }
+
+        UpdateNameFromParts(firstName, lastName);
+
+        BirthDate = birthDate?.Date;
+        WeightInKg = weightInKg;
+        BloodType = (bloodType ?? string.Empty).Trim();
+        Address = (address ?? string.Empty).Trim();
+        CurrentLocation = (currentLocation ?? Location.Empty).Clone();
+        ProfilePicturePath = profilePicturePath?.Trim() ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Updates the user's contact information.
+    /// </summary>
+    /// <param name="email">The email address.</param>
+    /// <param name="phoneNumber">The phone number.</param>
+    public void UpdateContactInformation(string email, string phoneNumber)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ArgumentException("Email cannot be empty", nameof(email));
+        }
+
+        if (string.IsNullOrWhiteSpace(phoneNumber))
+        {
+            throw new ArgumentException("Phone number cannot be empty", nameof(phoneNumber));
+        }
+
+        Email = email;
+        PhoneNumber = phoneNumber;
     }
 
     /// <summary>
@@ -142,5 +247,34 @@ public class User : Entity
     {
         Subscription? subscription = _subscriptions.FirstOrDefault(s => s.SubscriberId == subscriptionEvent.SubscriberId && s.SubscribedToId == subscriptionEvent.SubscribedToId);
         subscription?.Reject();
+    }
+
+    private void SetNameFromFullName(string name)
+    {
+        string trimmedName = name.Trim();
+        Name = trimmedName;
+
+        if (string.IsNullOrWhiteSpace(trimmedName))
+        {
+            FirstName = string.Empty;
+            LastName = string.Empty;
+            return;
+        }
+
+        string[] parts = trimmedName
+            .Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+        FirstName = parts.Length > 0 ? parts[0] : trimmedName;
+        LastName = parts.Length > 1 ? parts[1] : string.Empty;
+    }
+
+    private void UpdateNameFromParts(string firstName, string lastName)
+    {
+        FirstName = firstName.Trim();
+        LastName = lastName.Trim();
+
+        string combinedName = string.Join(" ", new[] { FirstName, LastName }
+            .Where(part => !string.IsNullOrWhiteSpace(part)));
+
+        Name = combinedName;
     }
 }
