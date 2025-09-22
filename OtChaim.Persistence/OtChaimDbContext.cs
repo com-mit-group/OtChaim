@@ -63,8 +63,8 @@ public class OtChaimDbContext(DbContextOptions<OtChaimDbContext> options) : DbCo
             builder.Property(u => u.Name);
             builder.Property(u => u.Email);
             builder.Property(u => u.PhoneNumber);
-            builder.Property(u => u.Birthday);
-            builder.Property(u => u.WeightKg);
+            builder.Property(u => u.BirthDate);
+            builder.Property(u => u.WeightInKg);
             builder.Property(u => u.BloodType);
             builder.Property(u => u.Address);
             builder.OwnsOne(u => u.CurrentLocation, ConfigureLocation);

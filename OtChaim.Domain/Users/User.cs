@@ -200,11 +200,11 @@ public class User : Entity
 
         if (birthday.HasValue && birthday.Value > DateTime.UtcNow.AddDays(1))
             throw new ArgumentException("Birthday cannot be in the future", nameof(birthday));
-        Birthday = birthday;
+        BirthDate = birthday;
 
         if (weightKg.HasValue && weightKg.Value <= 0)
             throw new ArgumentException("Weight must be positive", nameof(weightKg));
-        WeightKg = weightKg;
+        WeightInKg = weightKg;
 
         if (!string.IsNullOrWhiteSpace(bloodType)) BloodType = bloodType.Trim().ToUpperInvariant();
         if (!string.IsNullOrWhiteSpace(address)) Address = address.Trim();

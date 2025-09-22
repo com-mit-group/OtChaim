@@ -7,6 +7,8 @@ using Microsoft.Maui.Graphics;
 using OtChaim.Application.Services;
 using OtChaim.Domain.Common;
 using OtChaim.Domain.Users;
+using Location = OtChaim.Domain.Common.Location;
+
 
 #if !UNIT_TESTS
 using Microsoft.Maui.ApplicationModel;
