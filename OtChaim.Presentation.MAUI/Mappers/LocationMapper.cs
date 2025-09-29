@@ -1,3 +1,5 @@
+using Microsoft.Maui.Devices.Sensors;
+
 namespace OtChaim.Presentation.MAUI.Mappers;
 public static class LocationMapper
 {
