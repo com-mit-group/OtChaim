@@ -161,7 +161,7 @@ public partial class UserInfoViewModel : ObservableObject
 
             SelectedBloodType = EnsureBloodType(normalizedBloodType);
 
-            _user.UpdatePersonalProfile(
+            PersonalProfileUpdate profile = new(
                 FirstName,
                 LastName,
                 selectedBirthday,
@@ -170,6 +170,8 @@ public partial class UserInfoViewModel : ObservableObject
                 Address,
                 _activeLocation,
                 ProfilePicturePath);
+
+            _user.UpdatePersonalProfile(profile);
 
             await _userProfileService.SaveAsync(_user);
 

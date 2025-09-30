@@ -117,44 +117,41 @@ public class User : Entity
     /// <param name="address">The home address.</param>
     /// <param name="currentLocation">The current GPS location.</param>
     /// <param name="profilePicturePath">The path to the profile picture.</param>
-    public void UpdatePersonalProfile(
-        string firstName,
-        string lastName,
-        DateTime? birthDate,
-        double? weightInKg,
-        string bloodType,
-        string address,
-        Location? currentLocation,
-        string? profilePicturePath)
+    public void UpdatePersonalProfile(PersonalProfileUpdate profile)
     {
-        if (string.IsNullOrWhiteSpace(firstName))
+        if (profile is null)
         {
-            throw new ArgumentException("First name cannot be empty", nameof(firstName));
+            throw new ArgumentNullException(nameof(profile));
         }
 
-        if (string.IsNullOrWhiteSpace(lastName))
+        if (string.IsNullOrWhiteSpace(profile.FirstName))
         {
-            throw new ArgumentException("Last name cannot be empty", nameof(lastName));
+            throw new ArgumentException("First name cannot be empty", nameof(profile.FirstName));
         }
 
-        if (birthDate.HasValue && birthDate.Value.Date > DateTime.UtcNow.Date)
+        if (string.IsNullOrWhiteSpace(profile.LastName))
         {
-            throw new ArgumentException("Birth date cannot be in the future", nameof(birthDate));
+            throw new ArgumentException("Last name cannot be empty", nameof(profile.LastName));
         }
 
-        if (weightInKg.HasValue && weightInKg.Value <= 0)
+        if (profile.BirthDate.HasValue && profile.BirthDate.Value.Date > DateTime.UtcNow.Date)
         {
-            throw new ArgumentException("Weight must be greater than zero", nameof(weightInKg));
+            throw new ArgumentException("Birth date cannot be in the future", nameof(profile.BirthDate));
         }
 
-        UpdateNameFromParts(firstName, lastName);
+        if (profile.WeightInKg.HasValue && profile.WeightInKg.Value <= 0)
+        {
+            throw new ArgumentException("Weight must be greater than zero", nameof(profile.WeightInKg));
+        }
 
-        BirthDate = birthDate?.Date;
-        WeightInKg = weightInKg;
-        BloodType = (bloodType ?? string.Empty).Trim();
-        Address = (address ?? string.Empty).Trim();
-        CurrentLocation = (currentLocation ?? Location.Empty).Clone();
-        ProfilePicturePath = profilePicturePath?.Trim() ?? string.Empty;
+        UpdateNameFromParts(profile.FirstName, profile.LastName);
+
+        BirthDate = profile.BirthDate?.Date;
+        WeightInKg = profile.WeightInKg;
+        BloodType = (profile.BloodType ?? string.Empty).Trim();
+        Address = (profile.Address ?? string.Empty).Trim();
+        CurrentLocation = (profile.CurrentLocation ?? Location.Empty).Clone();
+        ProfilePicturePath = profile.ProfilePicturePath?.Trim() ?? string.Empty;
     }
 
     /// <summary>

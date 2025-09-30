@@ -25,7 +25,7 @@ public class UserProfileService(IUserRepository userRepository)
         }
 
         User defaultUser = new User("Finn Mond", "Finn@moon.com", "+71/182637263");
-        defaultUser.UpdatePersonalProfile(
+        defaultUser.UpdatePersonalProfile(new PersonalProfileUpdate(
             "Finn",
             "Mond",
             new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc),
@@ -33,7 +33,7 @@ public class UserProfileService(IUserRepository userRepository)
             "A",
             "Mondstrasse 3, 71626 Bonn",
             Location.Empty,
-            string.Empty);
+            string.Empty));
 
         await _userRepository.AddAsync(defaultUser, cancellationToken);
         return defaultUser;

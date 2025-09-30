@@ -32,7 +32,7 @@ public class UserRepositoryTests
     {
         // Arrange
         User user = new User("test", "test@example.com", "00000000");
-        user.UpdatePersonalProfile(
+        PersonalProfileUpdate profile = new(
             "test",
             "user",
             new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc),
@@ -41,6 +41,8 @@ public class UserRepositoryTests
             "123 Main Street",
             new Location(32.0853, 34.7818, "Home"),
             "profile.jpg");
+
+        user.UpdatePersonalProfile(profile);
 
         // Act
         await _repository.AddAsync(user);

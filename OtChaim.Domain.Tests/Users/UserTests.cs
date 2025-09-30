@@ -16,7 +16,17 @@ public class UserTests
         Location location = new Location(45.1234, -93.1234, "Home");
 
         // Act
-        user.UpdatePersonalProfile("John", "Doe", birthDate, 82.3, "O-", "123 Main St", location, "profile.jpg");
+        PersonalProfileUpdate profile = new(
+            "John",
+            "Doe",
+            birthDate,
+            82.3,
+            "O-",
+            "123 Main St",
+            location,
+            "profile.jpg");
+
+        user.UpdatePersonalProfile(profile);
 
         // Assert
         user.FirstName.Should().Be("John");
@@ -37,7 +47,17 @@ public class UserTests
     {
         User user = new User("Jane Doe", "jane@example.com", "123456789");
 
-        Action act = () => user.UpdatePersonalProfile(string.Empty, "Doe", DateTime.UtcNow, 70, "A+", "", Location.Empty, null);
+        PersonalProfileUpdate profile = new(
+            string.Empty,
+            "Doe",
+            DateTime.UtcNow,
+            70,
+            "A+",
+            string.Empty,
+            Location.Empty,
+            null);
+
+        Action act = () => user.UpdatePersonalProfile(profile);
 
         act.Should().Throw<ArgumentException>();
     }
@@ -48,7 +68,17 @@ public class UserTests
         User user = new User("Jane Doe", "jane@example.com", "123456789");
         DateTime futureBirthDate = DateTime.Today.AddDays(1);
 
-        Action act = () => user.UpdatePersonalProfile("Jane", "Doe", futureBirthDate, 70, "A+", "", Location.Empty, null);
+        PersonalProfileUpdate profile = new(
+            "Jane",
+            "Doe",
+            futureBirthDate,
+            70,
+            "A+",
+            string.Empty,
+            Location.Empty,
+            null);
+
+        Action act = () => user.UpdatePersonalProfile(profile);
 
         act.Should().Throw<ArgumentException>();
     }
