@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -218,12 +219,72 @@ public partial class UserInfoViewModel : ObservableObject
     {
         try
         {
-            FileResult? photo = await MediaPicker.PickPhotoAsync();
+            const string takePhotoOption = "Take Photo";
+            const string chooseFromGalleryOption = "Choose from Gallery";
+            const string cancelOption = "Cancel";
+
+            Page? currentPage = Shell.Current?.CurrentPage ?? Application.Current?.MainPage;
+            if (currentPage is null)
+            {
+                SetStatus("Unable to launch the photo picker UI.", true);
+                return;
+            }
+
+            string? selection = await MainThread.InvokeOnMainThreadAsync(() =>
+                currentPage.DisplayActionSheet(
+                    "Update Profile Picture",
+                    cancelOption,
+                    null,
+                    takePhotoOption,
+                    chooseFromGalleryOption));
+
+            if (string.IsNullOrWhiteSpace(selection) || selection.Equals(cancelOption, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            FileResult? photo = null;
+
+            if (selection.Equals(takePhotoOption, StringComparison.Ordinal))
+            {
+                if (!MediaPicker.Default.IsCaptureSupported)
+                {
+                    SetStatus("Capturing photos is not supported on this device.", true);
+                    return;
+                }
+
+                PermissionStatus cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
+                if (cameraStatus != PermissionStatus.Granted)
+                {
+                    cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+                }
+
+                if (cameraStatus != PermissionStatus.Granted)
+                {
+                    SetStatus("Camera permission is required to take a profile photo.", true);
+                    return;
+                }
+
+                photo = await MediaPicker.CapturePhotoAsync();
+            }
+            else if (selection.Equals(chooseFromGalleryOption, StringComparison.Ordinal))
+            {
+                photo = await MediaPicker.PickPhotoAsync();
+            }
+
             if (photo is not null)
             {
                 ProfilePicturePath = photo.FullPath;
                 SetStatus("Profile picture updated.", false);
             }
+        }
+        catch (FeatureNotSupportedException ex)
+        {
+            SetStatus($"Photo capture not supported: {ex.Message}", true);
+        }
+        catch (PermissionException ex)
+        {
+            SetStatus($"Required permissions were denied: {ex.Message}", true);
         }
         catch (Exception ex)
         {
