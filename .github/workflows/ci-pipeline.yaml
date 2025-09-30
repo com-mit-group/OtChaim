@@ -68,11 +68,13 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Ensure GitHub NuGet Source
+      env:
+        GITHUB_NUGET_TOKEN: ${{ secrets.YARE92_NUGET_TOKEN_EXP_17JUN2026 }}
       run: |
         dotnet nuget add source https://nuget.pkg.github.com/yaron-E92/index.json `
           -n github `
           -u Yaron-E92 `
-          -p ${{ secrets.YARE92_NUGET_TOKEN_EXP_17JUN2026 }} `
+          -p $env:GITHUB_NUGET_TOKEN `
           --store-password-in-clear-text
 
     - name: Restore Dependencies
@@ -200,11 +202,13 @@ jobs:
 
     - name: Ensure GitHub NuGet Source
       shell: pwsh
+      env:
+        GITHUB_NUGET_TOKEN: ${{ secrets.YARE92_NUGET_TOKEN_EXP_17JUN2026 }}
       run: |
         dotnet nuget add source https://nuget.pkg.github.com/yaron-E92/index.json `
           -n github `
           -u Yaron-E92 `
-          -p ${{ secrets.YARE92_NUGET_TOKEN_EXP_17JUN2026 }} `
+          -p $env:GITHUB_NUGET_TOKEN `
           --store-password-in-clear-text
 
     - name: Install workload
@@ -273,11 +277,13 @@ jobs:
           fi
     - name: Check if package version already exists on GitHub Packages
       id: check-package
+      env:
+        GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         VERSION="${{ needs.gitVersion.outputs.semVer }}"
         echo "Checking for version $VERSION of $PACKAGE_NAME"
-    
-        RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+
+        RESPONSE=$(curl -s -H "Authorization: Bearer ${GITHUB_API_TOKEN}" \
           -H "Accept: application/vnd.github+json" \
           "https://api.github.com/users/yaron-E92/packages/nuget/Yaref92.Events/versions")
     
@@ -345,11 +351,13 @@ jobs:
           New-Item -ItemType Directory -Force -Path .\.sonar\scanner
           dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
       - name: Ensure GitHub NuGet Source
+        env:
+          GITHUB_NUGET_TOKEN: ${{ secrets.YARE92_NUGET_TOKEN_EXP_17JUN2026 }}
         run: |
           dotnet nuget add source https://nuget.pkg.github.com/yaron-E92/index.json `
             -n github `
             -u Yaron-E92 `
-            -p ${{ secrets.YARE92_NUGET_TOKEN_EXP_17JUN2026 }} `
+            -p $env:GITHUB_NUGET_TOKEN `
             --store-password-in-clear-text
       - name: Build and analyze No GUI
         if: |
@@ -363,12 +371,12 @@ jobs:
           .\.sonar\scanner\dotnet-sonarscanner begin `
             /k:"com-mit-group_OtChaim" `
             /o:"com-mit-group" `
-            /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
+            /d:sonar.token="$env:SONAR_TOKEN" `
             /d:sonar.host.url="https://sonarcloud.io" `
             /d:sonar.projectBaseDir="${{ github.workspace }}" `
             /d:sonar.cs.opencover.reportsPaths=coverage/**/coverage*.opencover.xml
           dotnet build -c Release OtChaim.NoGUI.slnf
-          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
 
       - name: Build and analyze With GUI
         env:
@@ -382,9 +390,9 @@ jobs:
           .\.sonar\scanner\dotnet-sonarscanner begin `
             /k:"com-mit-group_OtChaim" `
             /o:"com-mit-group" `
-            /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
+            /d:sonar.token="$env:SONAR_TOKEN" `
             /d:sonar.host.url="https://sonarcloud.io" `
             /d:sonar.projectBaseDir="${{ github.workspace }}" `
             /d:sonar.cs.opencover.reportsPaths=coverage/**/coverage*.opencover.xml
           dotnet build -c Release
-          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
