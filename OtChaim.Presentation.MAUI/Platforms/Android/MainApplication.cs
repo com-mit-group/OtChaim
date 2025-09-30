@@ -1,8 +1,6 @@
 using Android.App;
 using Android.Runtime;
 
-using MauiApplication = Microsoft.Maui.MauiApplication;
-
 namespace OtChaim.Presentation.MAUI;
 
 [Application]

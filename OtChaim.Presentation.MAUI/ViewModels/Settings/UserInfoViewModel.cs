@@ -9,6 +9,7 @@ using OtChaim.Application.Services;
 using OtChaim.Domain.Common;
 using OtChaim.Domain.Users;
 using Location = OtChaim.Domain.Common.Location;
+using MauiApplication = Microsoft.Maui.Controls.Application;
 
 
 #if !UNIT_TESTS
@@ -223,7 +224,7 @@ public partial class UserInfoViewModel : ObservableObject
             const string chooseFromGalleryOption = "Choose from Gallery";
             const string cancelOption = "Cancel";
 
-            Page? currentPage = Shell.Current?.CurrentPage ?? Application.Current?.MainPage;
+            Page? currentPage = Shell.Current?.CurrentPage ?? MauiApplication.Current?.MainPage;
             if (currentPage is null)
             {
                 SetStatus("Unable to launch the photo picker UI.", true);
