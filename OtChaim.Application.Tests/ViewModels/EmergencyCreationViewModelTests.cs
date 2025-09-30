@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,7 +16,7 @@ public class EmergencyCreationViewModelTests
     public async Task CreateEmergencyCommand_WhenEmailDisabled_DoesNotSetEmailFlag()
     {
         var handler = new RecordingStartEmergencyHandler();
-        var viewModel = new EmergencyCreationViewModel(handler);
+        var viewModel = new EmergencyCreationViewModel(handler, new FixedCurrentUserProvider());
 
         viewModel.ToggleEmailCommand.Execute(null);
 
@@ -32,7 +33,7 @@ public class EmergencyCreationViewModelTests
     public async Task CreateEmergencyCommand_WhenSmsDisabled_DoesNotSetSmsFlag()
     {
         var handler = new RecordingStartEmergencyHandler();
-        var viewModel = new EmergencyCreationViewModel(handler);
+        var viewModel = new EmergencyCreationViewModel(handler, new FixedCurrentUserProvider());
 
         viewModel.ToggleSmsCommand.Execute(null);
 
@@ -49,7 +50,7 @@ public class EmergencyCreationViewModelTests
     public async Task CreateEmergencyCommand_WhenMessengerDisabled_DoesNotSetMessengerFlag()
     {
         var handler = new RecordingStartEmergencyHandler();
-        var viewModel = new EmergencyCreationViewModel(handler);
+        var viewModel = new EmergencyCreationViewModel(handler, new FixedCurrentUserProvider());
 
         viewModel.ToggleMessengerCommand.Execute(null); // enable messenger
         viewModel.ToggleMessengerCommand.Execute(null); // disable messenger again
@@ -67,7 +68,7 @@ public class EmergencyCreationViewModelTests
     public void CancelCommand_ResetsContactPreferences()
     {
         var handler = new RecordingStartEmergencyHandler();
-        var viewModel = new EmergencyCreationViewModel(handler);
+        var viewModel = new EmergencyCreationViewModel(handler, new FixedCurrentUserProvider());
 
         viewModel.ToggleEmailCommand.Execute(null);
         viewModel.ToggleSmsCommand.Execute(null);
@@ -87,7 +88,7 @@ public class EmergencyCreationViewModelTests
     public void TogglePersonalInfoCommand_NotifiesVisualStateBindings()
     {
         var handler = new RecordingStartEmergencyHandler();
-        var viewModel = new EmergencyCreationViewModel(handler);
+        var viewModel = new EmergencyCreationViewModel(handler, new FixedCurrentUserProvider());
         var changedProperties = new List<string>();
         viewModel.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName ?? string.Empty);
 
@@ -107,7 +108,7 @@ public class EmergencyCreationViewModelTests
     public void ToggleMedicalInfoCommand_NotifiesVisualStateBindings()
     {
         var handler = new RecordingStartEmergencyHandler();
-        var viewModel = new EmergencyCreationViewModel(handler);
+        var viewModel = new EmergencyCreationViewModel(handler, new FixedCurrentUserProvider());
         var changedProperties = new List<string>();
         viewModel.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName ?? string.Empty);
 
@@ -127,7 +128,7 @@ public class EmergencyCreationViewModelTests
     public void ToggleGpsCommand_NotifiesVisualStateBindings()
     {
         var handler = new RecordingStartEmergencyHandler();
-        var viewModel = new EmergencyCreationViewModel(handler);
+        var viewModel = new EmergencyCreationViewModel(handler, new FixedCurrentUserProvider());
         var changedProperties = new List<string>();
         viewModel.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName ?? string.Empty);
 
@@ -147,7 +148,7 @@ public class EmergencyCreationViewModelTests
     public void AttachedPicturePath_NotifiesVisualStateBindings()
     {
         var handler = new RecordingStartEmergencyHandler();
-        var viewModel = new EmergencyCreationViewModel(handler);
+        var viewModel = new EmergencyCreationViewModel(handler, new FixedCurrentUserProvider());
         var changedProperties = new List<string>();
         viewModel.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName ?? string.Empty);
 
@@ -167,7 +168,7 @@ public class EmergencyCreationViewModelTests
     public void AttachedDocumentPath_NotifiesVisualStateBindings()
     {
         var handler = new RecordingStartEmergencyHandler();
-        var viewModel = new EmergencyCreationViewModel(handler);
+        var viewModel = new EmergencyCreationViewModel(handler, new FixedCurrentUserProvider());
         var changedProperties = new List<string>();
         viewModel.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName ?? string.Empty);
 
@@ -192,5 +193,11 @@ public class EmergencyCreationViewModelTests
             LastCommand = command;
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FixedCurrentUserProvider : ICurrentUserProvider
+    {
+        public Task<Guid> GetCurrentUserIdAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"));
     }
 }

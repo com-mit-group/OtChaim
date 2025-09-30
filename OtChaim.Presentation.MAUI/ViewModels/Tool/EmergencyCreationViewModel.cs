@@ -1,5 +1,13 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+#if !UNIT_TESTS
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Storage;
+#endif
 using OtChaim.Application.Common;
 using OtChaim.Application.EmergencyEvents.Commands;
 using OtChaim.Application.ViewModels;
@@ -22,6 +30,8 @@ namespace OtChaim.Presentation.MAUI.ViewModels.Tool;
 public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
 {
     private readonly ICommandHandler<StartEmergency> _startEmergencyHandler;
+    private readonly ICurrentUserProvider _currentUserProvider;
+    private Guid? _currentUserId;
 
     /// <summary>
     /// Event raised when an emergency is successfully created.
@@ -241,9 +251,12 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// The constructor initializes the ViewModel with default values and sets up
     /// the emergency type to the first available option.
     /// </remarks>
-    public EmergencyCreationViewModel(ICommandHandler<StartEmergency> startEmergencyHandler)
+    public EmergencyCreationViewModel(
+        ICommandHandler<StartEmergency> startEmergencyHandler,
+        ICurrentUserProvider currentUserProvider)
     {
         _startEmergencyHandler = startEmergencyHandler;
+        _currentUserProvider = currentUserProvider;
         SelectedEmergencyType = EmergencyTypes.FirstOrDefault();
     }
 
@@ -312,7 +325,11 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// </remarks>
     [RelayCommand]
 #if UNIT_TESTS
-    private Task TogglePictureAsync() => Task.CompletedTask;
+    private Task TogglePictureAsync()
+    {
+        _ = this;
+        return Task.CompletedTask;
+    }
 #else
     private async Task TogglePictureAsync()
     {
@@ -348,7 +365,11 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// </remarks>
     [RelayCommand]
 #if UNIT_TESTS
-    private Task ToggleDocumentAsync() => Task.CompletedTask;
+    private Task ToggleDocumentAsync()
+    {
+        _ = this;
+        return Task.CompletedTask;
+    }
 #else
     private async Task ToggleDocumentAsync()
     {
@@ -506,8 +527,10 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
                 ? GetDefaultMessage(SelectedEmergencyType)
                 : EmergencyMessage;
 
+            Guid initiatorUserId = await EnsureCurrentUserIdAsync();
+
             var command = new StartEmergency(
-                Guid.NewGuid(), // TODO: Replace with actual user ID from auth
+                initiatorUserId,
                 SelectedEmergencyType,
                 location,
                 affectedAreas,
@@ -529,6 +552,18 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
             IsLoading = false;
             ResetCreateEmergencyFields();
         }
+    }
+
+    private async Task<Guid> EnsureCurrentUserIdAsync()
+    {
+        if (_currentUserId is Guid cached)
+        {
+            return cached;
+        }
+
+        Guid resolved = await _currentUserProvider.GetCurrentUserIdAsync();
+        _currentUserId = resolved;
+        return resolved;
     }
 
     /// <summary>

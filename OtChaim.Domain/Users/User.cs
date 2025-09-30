@@ -122,21 +122,21 @@ public class User : Entity
         ArgumentNullException.ThrowIfNull(profile);
 
         string firstName = profile.FirstName;
-        ArgumentException.ThrowIfNullOrWhiteSpace(firstName, nameof(firstName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(firstName);
         firstName = firstName.Trim();
 
         string lastName = profile.LastName;
-        ArgumentException.ThrowIfNullOrWhiteSpace(lastName, nameof(lastName));
+        ArgumentException.ThrowIfNullOrWhiteSpace(lastName);
         lastName = lastName.Trim();
 
         if (profile.BirthDate is { } birthDate && birthDate.Date > DateTime.UtcNow.Date)
         {
-            throw new ArgumentException("Birth date cannot be in the future", nameof(profile.BirthDate));
+            throw new ArgumentOutOfRangeException(nameof(profile), "Birth date cannot be in the future");
         }
 
         if (profile.WeightInKg is { } weight && weight <= 0)
         {
-            throw new ArgumentException("Weight must be greater than zero", nameof(profile.WeightInKg));
+            throw new ArgumentOutOfRangeException(nameof(profile), "Weight must be greater than zero");
         }
 
         UpdateNameFromParts(firstName, lastName);

@@ -469,7 +469,7 @@ public partial class UserInfoViewModel : ObservableObject
     private string EnsureBloodType(string value)
     {
         string normalized = string.IsNullOrWhiteSpace(value)
-            ? BloodTypes.First()
+            ? (BloodTypes.Count > 0 ? BloodTypes[0] : string.Empty)
             : value.Trim().ToUpperInvariant();
 
         if (!BloodTypes.Contains(normalized))
