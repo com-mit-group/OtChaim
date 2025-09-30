@@ -1,6 +1,5 @@
 using OtChaim.Domain.Common;
 using OtChaim.Domain.Users;
-using System.Linq;
 
 namespace OtChaim.Application.Services;
 
@@ -18,22 +17,24 @@ public class UserProfileService(IUserRepository userRepository)
     public async Task<User> GetOrCreatePrimaryUserAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyList<User> users = await _userRepository.GetAllAsync(cancellationToken) ?? Array.Empty<User>();
-        User? existing = users.FirstOrDefault();
+        User? existing = users.Count > 0 ? users[0] : null;
         if (existing is not null)
         {
             return existing;
         }
 
         User defaultUser = new User("Finn Mond", "Finn@moon.com", "+71/182637263");
-        defaultUser.UpdatePersonalProfile(new PersonalProfileUpdate(
-            "Finn",
-            "Mond",
-            new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-            83,
-            "A",
-            "Mondstrasse 3, 71626 Bonn",
-            Location.Empty,
-            string.Empty));
+        defaultUser.UpdatePersonalProfile(new PersonalProfileUpdate
+        {
+            FirstName = "Finn",
+            LastName = "Mond",
+            BirthDate = new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            WeightInKg = 83,
+            BloodType = "A",
+            Address = "Mondstrasse 3, 71626 Bonn",
+            CurrentLocation = Location.Empty,
+            ProfilePicturePath = string.Empty,
+        });
 
         await _userRepository.AddAsync(defaultUser, cancellationToken);
         return defaultUser;

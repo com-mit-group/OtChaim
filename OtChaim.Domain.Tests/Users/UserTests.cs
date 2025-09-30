@@ -16,15 +16,17 @@ public class UserTests
         Location location = new Location(45.1234, -93.1234, "Home");
 
         // Act
-        PersonalProfileUpdate profile = new(
-            "John",
-            "Doe",
-            birthDate,
-            82.3,
-            "O-",
-            "123 Main St",
-            location,
-            "profile.jpg");
+        PersonalProfileUpdate profile = new()
+        {
+            FirstName = "John",
+            LastName = "Doe",
+            BirthDate = birthDate,
+            WeightInKg = 82.3,
+            BloodType = "O-",
+            Address = "123 Main St",
+            CurrentLocation = location,
+            ProfilePicturePath = "profile.jpg",
+        };
 
         user.UpdatePersonalProfile(profile);
 
@@ -47,15 +49,17 @@ public class UserTests
     {
         User user = new User("Jane Doe", "jane@example.com", "123456789");
 
-        PersonalProfileUpdate profile = new(
-            string.Empty,
-            "Doe",
-            DateTime.UtcNow,
-            70,
-            "A+",
-            string.Empty,
-            Location.Empty,
-            null);
+        PersonalProfileUpdate profile = new()
+        {
+            FirstName = string.Empty,
+            LastName = "Doe",
+            BirthDate = DateTime.UtcNow,
+            WeightInKg = 70,
+            BloodType = "A+",
+            Address = string.Empty,
+            CurrentLocation = Location.Empty,
+            ProfilePicturePath = null,
+        };
 
         Action act = () => user.UpdatePersonalProfile(profile);
 
@@ -68,15 +72,17 @@ public class UserTests
         User user = new User("Jane Doe", "jane@example.com", "123456789");
         DateTime futureBirthDate = DateTime.Today.AddDays(1);
 
-        PersonalProfileUpdate profile = new(
-            "Jane",
-            "Doe",
-            futureBirthDate,
-            70,
-            "A+",
-            string.Empty,
-            Location.Empty,
-            null);
+        PersonalProfileUpdate profile = new()
+        {
+            FirstName = "Jane",
+            LastName = "Doe",
+            BirthDate = futureBirthDate,
+            WeightInKg = 70,
+            BloodType = "A+",
+            Address = string.Empty,
+            CurrentLocation = Location.Empty,
+            ProfilePicturePath = null,
+        };
 
         Action act = () => user.UpdatePersonalProfile(profile);
 

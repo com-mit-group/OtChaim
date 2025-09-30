@@ -32,15 +32,17 @@ public class UserRepositoryTests
     {
         // Arrange
         User user = new User("test", "test@example.com", "00000000");
-        PersonalProfileUpdate profile = new(
-            "test",
-            "user",
-            new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-            72.5,
-            "O+",
-            "123 Main Street",
-            new Location(32.0853, 34.7818, "Home"),
-            "profile.jpg");
+        PersonalProfileUpdate profile = new()
+        {
+            FirstName = "test",
+            LastName = "user",
+            BirthDate = new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            WeightInKg = 72.5,
+            BloodType = "O+",
+            Address = "123 Main Street",
+            CurrentLocation = new Location(32.0853, 34.7818, "Home"),
+            ProfilePicturePath = "profile.jpg",
+        };
 
         user.UpdatePersonalProfile(profile);
 

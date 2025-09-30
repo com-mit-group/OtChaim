@@ -119,32 +119,27 @@ public class User : Entity
     /// <param name="profilePicturePath">The path to the profile picture.</param>
     public void UpdatePersonalProfile(PersonalProfileUpdate profile)
     {
-        if (profile is null)
-        {
-            throw new ArgumentNullException(nameof(profile));
-        }
+        ArgumentNullException.ThrowIfNull(profile);
 
-        if (string.IsNullOrWhiteSpace(profile.FirstName))
-        {
-            throw new ArgumentException("First name cannot be empty", nameof(profile.FirstName));
-        }
+        string firstName = profile.FirstName;
+        ArgumentException.ThrowIfNullOrWhiteSpace(firstName, nameof(firstName));
+        firstName = firstName.Trim();
 
-        if (string.IsNullOrWhiteSpace(profile.LastName))
-        {
-            throw new ArgumentException("Last name cannot be empty", nameof(profile.LastName));
-        }
+        string lastName = profile.LastName;
+        ArgumentException.ThrowIfNullOrWhiteSpace(lastName, nameof(lastName));
+        lastName = lastName.Trim();
 
-        if (profile.BirthDate.HasValue && profile.BirthDate.Value.Date > DateTime.UtcNow.Date)
+        if (profile.BirthDate is { } birthDate && birthDate.Date > DateTime.UtcNow.Date)
         {
             throw new ArgumentException("Birth date cannot be in the future", nameof(profile.BirthDate));
         }
 
-        if (profile.WeightInKg.HasValue && profile.WeightInKg.Value <= 0)
+        if (profile.WeightInKg is { } weight && weight <= 0)
         {
             throw new ArgumentException("Weight must be greater than zero", nameof(profile.WeightInKg));
         }
 
-        UpdateNameFromParts(profile.FirstName, profile.LastName);
+        UpdateNameFromParts(firstName, lastName);
 
         BirthDate = profile.BirthDate?.Date;
         WeightInKg = profile.WeightInKg;

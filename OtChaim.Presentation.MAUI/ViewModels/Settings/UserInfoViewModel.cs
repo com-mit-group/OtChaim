@@ -163,15 +163,17 @@ public partial class UserInfoViewModel : ObservableObject
 
             SelectedBloodType = EnsureBloodType(normalizedBloodType);
 
-            PersonalProfileUpdate profile = new(
-                FirstName,
-                LastName,
-                selectedBirthday,
-                weightValue,
-                normalizedBloodType,
-                Address,
-                _activeLocation,
-                ProfilePicturePath);
+            PersonalProfileUpdate profile = new()
+            {
+                FirstName = FirstName,
+                LastName = LastName,
+                BirthDate = selectedBirthday,
+                WeightInKg = weightValue,
+                BloodType = normalizedBloodType,
+                Address = Address,
+                CurrentLocation = _activeLocation,
+                ProfilePicturePath = ProfilePicturePath,
+            };
 
             _user.UpdatePersonalProfile(profile);
 
