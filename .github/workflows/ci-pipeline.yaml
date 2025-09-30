@@ -47,6 +47,8 @@ jobs:
     needs: [gitVersion]
     runs-on: windows-latest
     permissions:
+      checks: write
+      pull-requests: write
       contents: read
       packages: read
     outputs:
