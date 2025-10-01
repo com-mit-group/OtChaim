@@ -1,5 +1,13 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+#if !UNIT_TESTS
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Storage;
+#endif
 using OtChaim.Application.Common;
 using OtChaim.Application.EmergencyEvents.Commands;
 using OtChaim.Application.ViewModels;
@@ -22,6 +30,8 @@ namespace OtChaim.Presentation.MAUI.ViewModels.Tool;
 public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
 {
     private readonly ICommandHandler<StartEmergency> _startEmergencyHandler;
+    private readonly ICurrentUserProvider _currentUserProvider;
+    private Guid? _currentUserId;
 
     /// <summary>
     /// Event raised when an emergency is successfully created.
@@ -121,7 +131,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// This preference is stored in the emergency attachments for processing.
     /// </remarks>
     [ObservableProperty]
-    private bool _sendMessenger = true;
+    private bool _sendMessenger = false;
 
     /// <summary>
     /// Gets or sets a value indicating whether personal information should be attached.
@@ -131,6 +141,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// to the emergency notification. This can be toggled on/off by the user.
     /// </remarks>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPersonalInfoAttached))]
     private bool _attachPersonalInfo = true;
 
     /// <summary>
@@ -141,6 +152,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// to the emergency notification. This can be toggled on/off by the user.
     /// </remarks>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMedicalInfoAttached))]
     private bool _attachMedicalInfo = true;
 
     /// <summary>
@@ -151,6 +163,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// to the emergency notification. This can be toggled on/off by the user.
     /// </remarks>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsGpsAttached))]
     private bool _attachGps = true;
 
     /// <summary>
@@ -161,6 +174,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// by the user to be attached to the emergency notification.
     /// </remarks>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPictureAttached))]
     private string _attachedPicturePath = string.Empty;
 
     /// <summary>
@@ -171,6 +185,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// by the user to be attached to the emergency notification.
     /// </remarks>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDocumentAttached))]
     private string _attachedDocumentPath = string.Empty;
 
     /// <summary>
@@ -236,9 +251,12 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// The constructor initializes the ViewModel with default values and sets up
     /// the emergency type to the first available option.
     /// </remarks>
-    public EmergencyCreationViewModel(ICommandHandler<StartEmergency> startEmergencyHandler)
+    public EmergencyCreationViewModel(
+        ICommandHandler<StartEmergency> startEmergencyHandler,
+        ICurrentUserProvider currentUserProvider)
     {
         _startEmergencyHandler = startEmergencyHandler;
+        _currentUserProvider = currentUserProvider;
         SelectedEmergencyType = EmergencyTypes.FirstOrDefault();
     }
 
@@ -249,9 +267,12 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
         LocationDescription = string.Empty;
         Latitude = 0;
         Longitude = 0;
-        SendEmail = true;
-        SendSms = true;
-        SendMessenger = false;
+        IsEmailSelected = true;
+        SendEmail = IsEmailSelected;
+        IsSmsSelected = true;
+        SendSms = IsSmsSelected;
+        IsMessengerSelected = false;
+        SendMessenger = IsMessengerSelected;
         AttachPersonalInfo = true;
         AttachMedicalInfo = true;
         AttachGps = true;
@@ -259,9 +280,6 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
         AttachedDocumentPath = string.Empty;
         IsGroupSelected = true;
         IsSingleSelected = false;
-        IsEmailSelected = true;
-        IsSmsSelected = true;
-        IsMessengerSelected = false;
     }
 
     [RelayCommand]
@@ -306,6 +324,13 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// this command will remove it instead.
     /// </remarks>
     [RelayCommand]
+#if UNIT_TESTS
+    private Task TogglePictureAsync()
+    {
+        _ = this;
+        return Task.CompletedTask;
+    }
+#else
     private async Task TogglePictureAsync()
     {
         try
@@ -328,6 +353,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
             System.Diagnostics.Debug.WriteLine($"Error picking photo: {ex.Message}");
         }
     }
+#endif
 
     /// <summary>
     /// Command to add or remove a document attachment to the emergency.
@@ -338,6 +364,13 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     /// this command will remove it instead.
     /// </remarks>
     [RelayCommand]
+#if UNIT_TESTS
+    private Task ToggleDocumentAsync()
+    {
+        _ = this;
+        return Task.CompletedTask;
+    }
+#else
     private async Task ToggleDocumentAsync()
     {
         try
@@ -360,6 +393,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
             System.Diagnostics.Debug.WriteLine($"Error picking document: {ex.Message}");
         }
     }
+#endif
 
     /// <summary>
     /// Command to toggle the personal information attachment.
@@ -420,18 +454,21 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     private void ToggleEmail()
     {
         IsEmailSelected = !IsEmailSelected;
+        SendEmail = IsEmailSelected;
     }
 
     [RelayCommand]
     private void ToggleSms()
     {
         IsSmsSelected = !IsSmsSelected;
+        SendSms = IsSmsSelected;
     }
 
     [RelayCommand]
     private void ToggleMessenger()
     {
         IsMessengerSelected = !IsMessengerSelected;
+        SendMessenger = IsMessengerSelected;
     }
 
     [RelayCommand]
@@ -490,8 +527,10 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
                 ? GetDefaultMessage(SelectedEmergencyType)
                 : EmergencyMessage;
 
+            Guid initiatorUserId = await EnsureCurrentUserIdAsync();
+
             var command = new StartEmergency(
-                Guid.NewGuid(), // TODO: Replace with actual user ID from auth
+                initiatorUserId,
                 SelectedEmergencyType,
                 location,
                 affectedAreas,
@@ -515,6 +554,18 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
         }
     }
 
+    private async Task<Guid> EnsureCurrentUserIdAsync()
+    {
+        if (_currentUserId is Guid cached)
+        {
+            return cached;
+        }
+
+        Guid resolved = await _currentUserProvider.GetCurrentUserIdAsync();
+        _currentUserId = resolved;
+        return resolved;
+    }
+
     /// <summary>
     /// Command to cancel the emergency creation process.
     /// </summary>
@@ -525,6 +576,7 @@ public partial class EmergencyCreationViewModel : BaseEmergencyViewModel
     [RelayCommand]
     private void Cancel()
     {
+        ResetCreateEmergencyFields();
         Cancelled?.Invoke(this, EventArgs.Empty);
     }
 }

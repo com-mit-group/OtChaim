@@ -34,5 +34,14 @@
 	</array>
 	<key>XSAppIconAssets</key>
 	<string>Assets.xcassets/appicon.appiconset</string>
+	<!-- Privacy permissions for User Information screen -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>OtChaim needs location access to update your current GPS coordinates in the User Information screen.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>OtChaim needs location access to update your current GPS coordinates in the User Information screen.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>OtChaim needs camera access to take a profile picture in the User Information screen.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>OtChaim needs photo library access to select a profile picture in the User Information screen.</string>
 </dict>
 </plist>

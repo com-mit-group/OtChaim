@@ -1,6 +1,7 @@
 using OtChaim.Domain.Common;
 using OtChaim.Domain.Notifications;
 using OtChaim.Domain.Users.Events;
+using System.Linq;
 
 namespace OtChaim.Domain.Users;
 
@@ -10,9 +11,21 @@ namespace OtChaim.Domain.Users;
 public class User : Entity
 {
     /// <summary>
-    /// Gets the user's name.
+    /// Gets the structured representation of the user's name.
     /// </summary>
-    public string Name { get; private set; } = string.Empty;
+    public PersonName PersonName { get; private set; } = PersonName.Empty;
+    /// <summary>
+    /// Gets the user's combined name for backward compatibility (First + Last).
+    /// </summary>
+    public string Name => PersonName.Full;
+    /// <summary>
+    /// Gets the user's first name.
+    /// </summary>
+    public string FirstName => PersonName.First;
+    /// <summary>
+    /// Gets the user's last name.
+    /// </summary>
+    public string LastName => PersonName.Last;
     /// <summary>
     /// Gets the user's email address.
     /// </summary>
@@ -25,6 +38,30 @@ public class User : Entity
     /// Gets a value indicating whether the user is active.
     /// </summary>
     public bool IsActive { get; private set; }
+    /// <summary>
+    /// Gets the user's birth date if provided.
+    /// </summary>
+    public DateTime? BirthDate { get; private set; }
+    /// <summary>
+    /// Gets the user's weight in kilograms if provided.
+    /// </summary>
+    public double? WeightInKg { get; private set; }
+    /// <summary>
+    /// Gets the user's blood type.
+    /// </summary>
+    public string BloodType { get; private set; } = string.Empty;
+    /// <summary>
+    /// Gets the user's home address.
+    /// </summary>
+    public string Address { get; private set; } = string.Empty;
+    /// <summary>
+    /// Gets the user's current location.
+    /// </summary>
+    public Location CurrentLocation { get; private set; } = Location.Empty;
+    /// <summary>
+    /// Gets the path to the user's profile picture if one is set.
+    /// </summary>
+    public string ProfilePicturePath { get; private set; } = string.Empty;
     private readonly List<Guid> _subscriberIds = [];
     /// <summary>
     /// Gets the list of subscriber IDs.
@@ -63,10 +100,119 @@ public class User : Entity
             throw new ArgumentException("Phone number cannot be empty", nameof(phoneNumber));
 
         Id = Guid.NewGuid();
-        Name = name;
+        SetNameFromFullName(name);
         Email = email;
         PhoneNumber = phoneNumber;
         IsActive = true;
+    }
+
+    /// <summary>
+    /// Updates the core personal profile information for the user.
+    /// </summary>
+    /// <param name="firstName">The first name.</param>
+    /// <param name="lastName">The last name.</param>
+    /// <param name="birthDate">The optional birth date.</param>
+    /// <param name="weightInKg">The optional weight in kilograms.</param>
+    /// <param name="bloodType">The blood type.</param>
+    /// <param name="address">The home address.</param>
+    /// <param name="currentLocation">The current GPS location.</param>
+    /// <param name="profilePicturePath">The path to the profile picture.</param>
+    public void UpdatePersonalProfile(PersonalProfileUpdate profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+
+        string firstName = profile.FirstName;
+        ArgumentException.ThrowIfNullOrWhiteSpace(firstName);
+        firstName = firstName.Trim();
+
+        string lastName = profile.LastName;
+        ArgumentException.ThrowIfNullOrWhiteSpace(lastName);
+        lastName = lastName.Trim();
+
+        if (profile.BirthDate is { } birthDate && birthDate.Date > DateTime.UtcNow.Date)
+        {
+            throw new ArgumentOutOfRangeException(nameof(profile), "Birth date cannot be in the future");
+        }
+
+        if (profile.WeightInKg is { } weight && weight <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(profile), "Weight must be greater than zero");
+        }
+
+        UpdateNameFromParts(firstName, lastName);
+
+        BirthDate = profile.BirthDate?.Date;
+        WeightInKg = profile.WeightInKg;
+        BloodType = (profile.BloodType ?? string.Empty).Trim();
+        Address = (profile.Address ?? string.Empty).Trim();
+        CurrentLocation = (profile.CurrentLocation ?? Location.Empty).Clone();
+        ProfilePicturePath = profile.ProfilePicturePath?.Trim() ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Updates the user's contact information.
+    /// </summary>
+    /// <param name="email">The email address.</param>
+    /// <param name="phoneNumber">The phone number.</param>
+    public void UpdateContactInformation(string email, string phoneNumber)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ArgumentException("Email cannot be empty", nameof(email));
+        }
+
+        if (string.IsNullOrWhiteSpace(phoneNumber))
+        {
+            throw new ArgumentException("Phone number cannot be empty", nameof(phoneNumber));
+        }
+
+        Email = email;
+        PhoneNumber = phoneNumber;
+    }
+
+    /// <summary>
+    /// Updates the extended profile information of the user.
+    /// </summary>
+    public void UpdateProfile(
+        string? firstName,
+        string? lastName,
+        DateTime? birthday,
+        double? weightKg,
+        string? bloodType,
+        string? address,
+        Location? currentLocation,
+        string? profilePicturePath,
+        string? phone,
+        string? email)
+    {
+        string? trimmedFirstName = firstName?.Trim();
+        string? trimmedLastName = lastName?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(trimmedFirstName) || !string.IsNullOrWhiteSpace(trimmedLastName))
+        {
+            string newFirst = string.IsNullOrWhiteSpace(trimmedFirstName) ? PersonName.First : trimmedFirstName;
+            string newLast = string.IsNullOrWhiteSpace(trimmedLastName) ? PersonName.Last : trimmedLastName;
+            PersonName = new PersonName(newFirst, newLast);
+        }
+
+        if (birthday.HasValue && birthday.Value.Date > DateTime.UtcNow.Date)
+            throw new ArgumentException("Birthday cannot be in the future", nameof(birthday));
+        BirthDate = birthday?.Date;
+
+        if (weightKg.HasValue && weightKg.Value <= 0)
+            throw new ArgumentException("Weight must be positive", nameof(weightKg));
+        WeightInKg = weightKg;
+
+        if (!string.IsNullOrWhiteSpace(bloodType)) BloodType = bloodType.Trim().ToUpperInvariant();
+        if (!string.IsNullOrWhiteSpace(address)) Address = address.Trim();
+        if (currentLocation is not null)
+        {
+            CurrentLocation = currentLocation.Clone();
+        }
+        if (!string.IsNullOrWhiteSpace(profilePicturePath)) ProfilePicturePath = profilePicturePath.Trim();
+
+        if (!string.IsNullOrWhiteSpace(phone)) PhoneNumber = phone.Trim();
+        if (!string.IsNullOrWhiteSpace(email)) Email = email.Trim();
     }
 
     /// <summary>
@@ -122,7 +268,7 @@ public class User : Entity
     /// </summary>
     public void OnSubscriptionRequested(SubscriptionRequested subscriptionEvent)
     {
-        Subscription? subscription = new Subscription(subscriptionEvent.SubscriberId, subscriptionEvent.SubscribedToId, RequiresSubscriptionApproval());
+        Subscription subscription = new(subscriptionEvent.SubscriberId, subscriptionEvent.SubscribedToId, RequiresSubscriptionApproval());
         _subscriptions.Add(subscription);
     }
 
@@ -142,5 +288,15 @@ public class User : Entity
     {
         Subscription? subscription = _subscriptions.FirstOrDefault(s => s.SubscriberId == subscriptionEvent.SubscriberId && s.SubscribedToId == subscriptionEvent.SubscribedToId);
         subscription?.Reject();
+    }
+
+    private void SetNameFromFullName(string name)
+    {
+        PersonName = PersonName.FromFullName(name);
+    }
+
+    private void UpdateNameFromParts(string firstName, string lastName)
+    {
+        PersonName = new PersonName(firstName, lastName);
     }
 }

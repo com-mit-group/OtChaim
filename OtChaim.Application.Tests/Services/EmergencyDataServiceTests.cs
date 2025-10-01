@@ -1,93 +1,104 @@
+using System;
+using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using FluentAssertions;
 using NSubstitute;
 using OtChaim.Application.Services;
 using OtChaim.Domain.EmergencyEvents;
 using OtChaim.Domain.Users;
-using System.Collections.ObjectModel;
 
 namespace OtChaim.Application.Tests.Services;
 
 [TestFixture]
 public class EmergencyDataServiceTests
 {
+    private IEmergencyRepository _emergencyRepository = null!;
+    private IUserRepository _userRepository = null!;
     private EmergencyDataService _service = null!;
 
     [SetUp]
     public void Setup()
     {
-        _service = new EmergencyDataService(Substitute.For<IEmergencyRepository>(), Substitute.For<IUserRepository>());
+        _emergencyRepository = Substitute.For<IEmergencyRepository>();
+        _userRepository = Substitute.For<IUserRepository>();
+        _service = new EmergencyDataService(_emergencyRepository, _userRepository);
     }
 
     [Test]
     public void Constructor_ShouldInitializeService()
     {
-        // Assert
         _service.Should().NotBeNull();
     }
 
     [Test]
-    public void LoadActiveEmergenciesAsync_ShouldReturnEmptyCollection()
+    public async Task LoadActiveEmergenciesAsync_WhenRepositoryReturnsEmptyCollection_ShouldLeaveCollectionEmpty()
     {
-        // Arrange
         var emergencies = new ObservableCollection<Emergency>();
 
-        // Act
-        Task result = _service.LoadActiveEmergenciesAsync(emergencies);
+        _emergencyRepository.GetActiveAsync()
+            .Returns(Task.FromResult<IReadOnlyList<Emergency>>(Array.Empty<Emergency>()));
 
-        // Assert
-        result.Should().NotBeNull();
+        await _service.LoadActiveEmergenciesAsync(emergencies);
+
         emergencies.Should().BeEmpty();
     }
 
     [Test]
-    public void LoadUsersAsync_ShouldReturnEmptyCollection()
+    public async Task LoadUsersAsync_WhenRepositoryReturnsEmptyCollection_ShouldLeaveCollectionEmpty()
     {
-        // Arrange
         var users = new ObservableCollection<User>();
 
-        // Act
-        Task result = _service.LoadUsersAsync(users);
+        _userRepository.GetAllAsync()
+            .Returns(Task.FromResult<IReadOnlyList<User>>(Array.Empty<User>()));
 
-        // Assert
-        result.Should().NotBeNull();
+        await _service.LoadUsersAsync(users);
+
         users.Should().BeEmpty();
     }
 
     [Test]
-    public async Task LoadActiveEmergenciesAsync_ShouldCompleteSuccessfully()
+    public async Task LoadActiveEmergenciesAsync_WhenRepositoryReturnsNull_ShouldLeaveCollectionEmpty()
     {
-        // Arrange
         var emergencies = new ObservableCollection<Emergency>();
 
-        // Act & Assert
+        _emergencyRepository.GetActiveAsync()
+            .Returns(Task.FromResult<IReadOnlyList<Emergency>>(null!));
+
         Func<Task> action = () => _service.LoadActiveEmergenciesAsync(emergencies);
+
         await action.Should().NotThrowAsync();
+        emergencies.Should().BeEmpty();
     }
 
     [Test]
-    public async Task LoadUsersAsync_ShouldCompleteSuccessfully()
+    public async Task LoadUsersAsync_WhenRepositoryReturnsNull_ShouldLeaveCollectionEmpty()
     {
-        // Arrange
         var users = new ObservableCollection<User>();
 
-        // Act & Assert
+        _userRepository.GetAllAsync()
+            .Returns(Task.FromResult<IReadOnlyList<User>>(null!));
+
         Func<Task> action = () => _service.LoadUsersAsync(users);
+
         await action.Should().NotThrowAsync();
+        users.Should().BeEmpty();
     }
 
     [Test]
-    public async Task LoadActiveEmergenciesAsync_WithNullCollection_ShouldHandleGracefully()
+    public async Task LoadActiveEmergenciesAsync_WithNullCollection_ShouldReturnCleanly()
     {
-        // Act & Assert
         Func<Task> action = () => _service.LoadActiveEmergenciesAsync(null!);
+
         await action.Should().NotThrowAsync();
+        _emergencyRepository.ReceivedCalls().Should().BeEmpty();
     }
 
     [Test]
-    public async Task LoadUsersAsync_WithNullCollection_ShouldHandleGracefully()
+    public async Task LoadUsersAsync_WithNullCollection_ShouldReturnCleanly()
     {
-        // Act & Assert
         Func<Task> action = () => _service.LoadUsersAsync(null!);
+
         await action.Should().NotThrowAsync();
+        _userRepository.ReceivedCalls().Should().BeEmpty();
     }
 }

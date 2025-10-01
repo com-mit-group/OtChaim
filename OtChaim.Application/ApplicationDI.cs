@@ -5,6 +5,7 @@ using OtChaim.Application.Common;
 using OtChaim.Application.EmergencyEvents.Commands;
 using OtChaim.Application.EmergencyEvents.EventSubscribers;
 using OtChaim.Application.EmergencyEvents.Handlers;
+using OtChaim.Application.Services;
 using OtChaim.Application.Users.Commands;
 using OtChaim.Application.Users.EventSubscribers;
 using OtChaim.Application.Users.Handlers;
@@ -83,6 +84,8 @@ public static class ApplicationDI
         services.AddScoped<ICommandHandler<StartEmergency>, StartEmergencyHandler>();
         services.AddScoped<ICommandHandler<EndEmergency>, EndEmergencyHandler>();
         services.AddScoped<ICommandHandler<MarkUserStatus>, MarkUserStatusHandler>();
+
+        services.AddScoped<ICurrentUserProvider, PrimaryUserCurrentUserProvider>();
 
         return services;
     }
