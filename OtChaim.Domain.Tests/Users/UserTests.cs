@@ -1,3 +1,4 @@
+using System;
 using FluentAssertions;
 using OtChaim.Domain.Common;
 using OtChaim.Domain.Users;
@@ -67,6 +68,28 @@ public class UserTests
     }
 
     [Test]
+    public void UpdatePersonalProfile_WithEmptyLastName_ShouldThrow()
+    {
+        User user = new User("Jane Doe", "jane@example.com", "123456789");
+
+        PersonalProfileUpdate profile = new()
+        {
+            FirstName = "Jane",
+            LastName = " ",
+            BirthDate = DateTime.UtcNow,
+            WeightInKg = 70,
+            BloodType = "A+",
+            Address = string.Empty,
+            CurrentLocation = Location.Empty,
+            ProfilePicturePath = null,
+        };
+
+        Action act = () => user.UpdatePersonalProfile(profile);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Test]
     public void UpdatePersonalProfile_WithFutureBirthDate_ShouldThrow()
     {
         User user = new User("Jane Doe", "jane@example.com", "123456789");
@@ -87,6 +110,38 @@ public class UserTests
         Action act = () => user.UpdatePersonalProfile(profile);
 
         act.Should().Throw<ArgumentException>();
+    }
+
+    [Test]
+    public void UpdatePersonalProfile_WithNonPositiveWeight_ShouldThrow()
+    {
+        User user = new User("Jane Doe", "jane@example.com", "123456789");
+
+        PersonalProfileUpdate profile = new()
+        {
+            FirstName = "Jane",
+            LastName = "Doe",
+            BirthDate = DateTime.UtcNow,
+            WeightInKg = 0,
+            BloodType = "A+",
+            Address = string.Empty,
+            CurrentLocation = Location.Empty,
+            ProfilePicturePath = null,
+        };
+
+        Action act = () => user.UpdatePersonalProfile(profile);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Test]
+    public void UpdatePersonalProfile_WithNullProfile_ShouldThrow()
+    {
+        User user = new User("Jane Doe", "jane@example.com", "123456789");
+
+        Action act = () => user.UpdatePersonalProfile(null!);
+
+        act.Should().Throw<ArgumentNullException>();
     }
 
     [Test]
