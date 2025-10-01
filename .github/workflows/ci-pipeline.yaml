@@ -176,31 +176,32 @@ jobs:
   buildAndTestGUI:
     name: Build and Test GUI
     needs: [checkWhetherGUIBuildNeeded]
-    if: |
-      (needs.checkWhetherGUIBuildNeeded.outputs.diff != '' &&
-      needs.checkWhetherGUIBuildNeeded.outputs.override != 'false') ||
-      needs.checkWhetherGUIBuildNeeded.outputs.override == 'true'
     runs-on: windows-latest
     permissions:
       checks: write
       pull-requests: write
       contents: read
       packages: read
+    env:
+      GUI_BUILD_REQUIRED: ${{ (needs.checkWhetherGUIBuildNeeded.outputs.diff != '' && needs.checkWhetherGUIBuildNeeded.outputs.override != 'false') || needs.checkWhetherGUIBuildNeeded.outputs.override == 'true' }}
 
     steps:
     - name: Checkout
+      if: ${{ env.GUI_BUILD_REQUIRED == 'true' }}
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
         persist-credentials: false
 
     - name: Setup .NET
+      if: ${{ env.GUI_BUILD_REQUIRED == 'true' }}
       id: setupDotnet
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
 
     - name: Ensure GitHub NuGet Source
+      if: ${{ env.GUI_BUILD_REQUIRED == 'true' }}
       shell: pwsh
       env:
         GITHUB_NUGET_TOKEN: ${{ secrets.YARE92_NUGET_TOKEN_EXP_17JUN2026 }}
@@ -212,6 +213,7 @@ jobs:
           --store-password-in-clear-text
 
     - name: Install workload
+      if: ${{ env.GUI_BUILD_REQUIRED == 'true' }}
       shell: pwsh
       run: |
         dotnet workload install maui-android wasi-experimental
@@ -221,6 +223,7 @@ jobs:
         }
 
     - name: Setup Android SDK
+      if: ${{ env.GUI_BUILD_REQUIRED == 'true' }}
       shell: pwsh
       run: |
         Write-Host "Checking GUI changes: ${{needs.checkWhetherGUIBuildNeeded.outputs.diff}}"
@@ -231,6 +234,7 @@ jobs:
         }
 
     - name: Restore dependencies
+      if: ${{ env.GUI_BUILD_REQUIRED == 'true' }}
       shell: pwsh
       run: |
         dotnet restore ./OtChaim.Presentation.MAUI/OtChaim.Presentation.MAUI.csproj
@@ -241,6 +245,7 @@ jobs:
 
     - name: Build
       id: build
+      if: ${{ env.GUI_BUILD_REQUIRED == 'true' }}
       shell: pwsh
       run: |
         dotnet build --no-restore ./OtChaim.Presentation.MAUI/OtChaim.Presentation.MAUI.csproj
@@ -249,8 +254,12 @@ jobs:
           exit 1
         }
 
-  tagAndRelease:
-    name: Tag and Release
+    - name: GUI build not required
+      if: ${{ env.GUI_BUILD_REQUIRED != 'true' }}
+      run: echo "GUI build not required"
+
+  tagVersion:
+    name: Tag version on main if new
     needs: [gitVersion, buildAndTestWithoutGUI, buildAndTestGUI]
     if:  |
       (needs.buildAndTestGUI.result == 'skipped' || needs.buildAndTestGUI.result == 'success') &&
@@ -275,42 +284,6 @@ jobs:
             git tag -a "${{ needs.gitVersion.outputs.semVer}}" -m "Version ${{ needs.gitVersion.outputs.semVer}}"
             git push --tags
           fi
-    - name: Check if package version already exists on GitHub Packages
-      id: check-package
-      env:
-        GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        VERSION="${{ needs.gitVersion.outputs.semVer }}"
-        echo "Checking for version $VERSION of $PACKAGE_NAME"
-
-        RESPONSE=$(curl -s -H "Authorization: Bearer ${GITHUB_API_TOKEN}" \
-          -H "Accept: application/vnd.github+json" \
-          "https://api.github.com/users/yaron-E92/packages/nuget/Yaref92.Events/versions")
-    
-        EXISTS=$(echo "$RESPONSE" | jq -r --arg VERSION "$VERSION" '.[] | select(.name == $VERSION) | .name')
-    
-        if [[ "$EXISTS" == "$VERSION" ]]; then
-          echo "skip=true" >> $GITHUB_OUTPUT
-          echo "Version $VERSION already exists. Skipping push."
-        else
-          echo "skip=false" >> $GITHUB_OUTPUT
-          echo "Version $VERSION not found. Proceeding with push."
-        fi
-    - name: Pack Nuget
-      if: steps.check-package.outputs.skip == 'false'
-      run: dotnet pack -c Release -o out /p:AssemblyVersion=${{ needs.gitVersion.outputs.assemblySemFileVer }} /p:FileVersion=${{ needs.gitVersion.outputs.assemblySemFileVer }} /p:InformationalVersion=${{ needs.gitVersion.outputs.informationalVersion }} /p:Version=${{ needs.gitVersion.outputs.semVer }} /p:PackageVersion=${{ needs.gitVersion.outputs.nugetVersion }} ./Yaref92.Events.sln
-    - name: Release NuGet package
-      if: steps.check-package.outputs.skip == 'false'
-      run: |
-        for file in ./out/*.nupkg; do
-          echo "Pushing $file..."
-          dotnet nuget push "$file" \
-            --api-key ${GITHUB_TOKEN} \
-            --source "https://nuget.pkg.github.com/yaron-E92/index.json" \
-            --skip-duplicate
-        done
-      env:
-        GITHUB_TOKEN: ${{ secrets.YARE92_NUGET_PUSH_TOKEN_EXP_29JUN2026 }}
 
   sonar:
     name: SonarCloud - Build and analyze
