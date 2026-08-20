@@ -3,56 +3,48 @@ name: Run Integration Tests (Manual)
 on:
   workflow_dispatch:
 
+permissions: {}
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  integration-tests:
-    runs-on: ubuntu-latest
+  baseline:
+    name: Shared workflow policy
+    uses: yaron-E92/AutoDev/.github/workflows/profile-baseline.yml@7190410c74ab6674d1c8cc647b178bbc4b5cdd54
+    with:
+      ref: ${{ github.sha }}
+      require_concurrency: true
     permissions:
-      checks: write
-      pull-requests: write
       contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Ensure GitHub NuGet Source
-        env:
-          GITHUB_NUGET_TOKEN: ${{ secrets.YARE92_NUGET_TOKEN_EXP_17JUN2026 }}
-        run: |
-          dotnet nuget add source https://nuget.pkg.github.com/yaron-E92/index.json \
-            -n github \
-            -u Yaron-E92 \
-            -p ${GITHUB_NUGET_TOKEN} \
-            --store-password-in-clear-text
-        continue-on-error: true
-
-      - name: Install workload
-        run: |
-          dotnet workload install maui-android wasi-experimental
-
-      - name: Setup Android SDK
-        run: |
-          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "tools"
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Build
-        id: build
-        run: dotnet build --no-restore --configuration Release
-
-      - name: Run Integration Tests
-        run: dotnet test OtChaim.IntegrationTests/OtChaim.IntegrationTests.csproj --configuration Release --no-build --logger "trx" --filter TestCategory=Integration
-
-      - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: ${{steps.build.outcome == 'success'}}
-        with:
-          files: OtChaim.IntegrationTests/TestResults/*.trx
-          check_name: "Integration tests Results"
+  integration-tests:
+    name: Integration tests
+    needs: [baseline]
+    uses: yaron-E92/AutoDev/.github/workflows/profile-dotnet.yml@7190410c74ab6674d1c8cc647b178bbc4b5cdd54
+    with:
+      ref: ${{ github.sha }}
+      runner: ubuntu-latest
+      global_json_file: ''
+      dotnet_version: 8.0.x
+      setup_command: bash scripts/ci-configure-nuget.sh
+      restore_command: dotnet restore OtChaim.IntegrationTests/OtChaim.IntegrationTests.csproj
+      build_command: dotnet build OtChaim.IntegrationTests/OtChaim.IntegrationTests.csproj --configuration Release --no-restore
+      test_command: |
+        set -euo pipefail
+        mkdir -p artifacts/ci/integration
+        dotnet test OtChaim.IntegrationTests/OtChaim.IntegrationTests.csproj \
+          --configuration Release \
+          --no-build \
+          --no-restore \
+          --logger 'trx;LogFilePrefix=integration' \
+          --results-directory artifacts/ci/integration \
+          --filter TestCategory=Integration
+      test_results_path: artifacts/ci/integration/*.trx
+      artifact_name: otchaim-integration-results
+    secrets:
+      nuget_token: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: read
+      packages: read
