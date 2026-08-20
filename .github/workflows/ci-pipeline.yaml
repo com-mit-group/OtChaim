@@ -40,8 +40,7 @@ jobs:
     with:
       ref: ${{ github.sha }}
       runner: windows-latest
-      global_json_file: ''
-      dotnet_version: 8.0.x
+      global_json_file: global.json
       setup_command: bash scripts/ci-configure-nuget.sh
       restore_command: dotnet restore OtChaim.NoGUI.slnf
       build_command: dotnet build OtChaim.NoGUI.slnf --configuration NoGUI --no-restore
@@ -70,8 +69,7 @@ jobs:
     uses: yaron-E92/AutoDev/.github/workflows/profile-maui.yml@7190410c74ab6674d1c8cc647b178bbc4b5cdd54
     with:
       ref: ${{ github.sha }}
-      global_json_file: ''
-      dotnet_version: 8.0.x
+      global_json_file: global.json
       headless_enabled: false
 
       android_enabled: true
@@ -113,10 +111,10 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Set up .NET 8
+      - name: Set up .NET 8 from global.json
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: 8.0.x
+          global-json-file: global.json
 
       - name: Set up JDK 17
         uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
