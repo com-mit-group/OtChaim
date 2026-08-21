@@ -1,398 +1,139 @@
-# This workflow will build and test a .NET project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
-name: Continuous integration pipeline
+name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  gitVersion:
-    name: Determine Version
-    runs-on: ubuntu-latest
-    outputs:
-      branchName: ${{ steps.gitversion.outputs.branchName }}
-      semVer: ${{ steps.gitversion.outputs.semVer }}
-      sha: ${{ steps.gitversion.outputs.sha }}
-      nugetVersion: ${{ steps.gitversion.outputs.nuGetVersion }}
-      assemblySemFileVer: ${{ steps.gitversion.outputs.assemblySemFileVer }}
-      informationalVersion: ${{ steps.gitversion.outputs.informationalVersion }}
-
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        persist-credentials: false
-
-    - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v1.1.1
-      with:
-        versionSpec: '5.x'
-        preferLatestVersion: true
-
-    - name: Determine Version
-      id: gitversion
-      uses: gittools/actions/gitversion/execute@v1.1.1
-      with:
-        additionalArguments: '/updateprojectfiles'
-        useConfigFile: true
-        configFilePath: '.github/GitVersion.yaml'
-
-  buildAndTestWithoutGUI:
-    name: Build and Test (No GUI)
-    needs: [gitVersion]
-    runs-on: windows-latest
+  baseline:
+    name: Shared workflow policy
+    uses: yaron-E92/AutoDev/.github/workflows/profile-baseline.yml@7190410c74ab6674d1c8cc647b178bbc4b5cdd54
+    with:
+      ref: ${{ github.sha }}
+      require_concurrency: true
     permissions:
-      checks: write
-      pull-requests: write
       contents: read
-      packages: read
-    outputs:
-      build_outcome: ${{ steps.expose.outputs.build_outcome }}
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        persist-credentials: false
-
-    - name: Setup .NET
-      id: setupDotnet
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 8.0.x
-
-    - name: Ensure GitHub NuGet Source
-      env:
-        GITHUB_NUGET_TOKEN: ${{ secrets.YARE92_NUGET_TOKEN_EXP_17JUN2026 }}
-      run: |
-        dotnet nuget add source https://nuget.pkg.github.com/yaron-E92/index.json `
-          -n github `
-          -u Yaron-E92 `
-          -p $env:GITHUB_NUGET_TOKEN `
-          --store-password-in-clear-text
-
-    - name: Restore Dependencies
-      run: dotnet restore OtChaim.NoGUI.slnf
-
-    - name: Build
-      id: build
-      run: dotnet build -c NoGUI --no-restore OtChaim.NoGUI.slnf
-
-    - name: Test
-      run: |
-        dotnet test --logger "trx" --no-build -c NoGUI --verbosity normal --collect:"XPlat Code Coverage;Format=opencover" `
-          /p:AssemblyVersion=${{ needs.gitVersion.outputs.assemblySemFileVer }} `
-          /p:FileVersion=${{ needs.gitVersion.outputs.assemblySemFileVer }} `
-          /p:InformationalVersion=${{ needs.gitVersion.outputs.informationalVersion }} `
-          OtChaim.NoGUI.slnf
-
-    - name: Publish Test Results
-      uses: EnricoMi/publish-unit-test-result-action/windows@v2
-      if: ${{ steps.build.outcome == 'success' }}
-      with:
-        files: |
-          ./**/TestResults/*.trx
-        check_name: "Test Results (No GUI)"
-
-    - name: Upload Coverage Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: code-coverage
-        path: ./**/TestResults/**/coverage*.opencover.xml
-
-  checkWhetherGUIBuildNeeded:
-    name: Check GUI Build Requirements
-    needs: [gitVersion]
-    runs-on: ubuntu-latest
-    outputs:
-      diff: ${{steps.checkDiff.outputs.diff}}
-      override: ${{steps.determineOverride.outputs.override}}
-
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        persist-credentials: false
-
-    - name: Check diff
-      id: checkDiff
-      run: |
-        DIFF=$(git diff origin/main~1 HEAD -- OtChaim.Presentation.MAUI/**/*.cs OtChaim.Presentation.MAUI/*.cs OtChaim.Presentation.MAUI/**/*.xaml OtChaim.Presentation.MAUI/*.xaml | head -n 1)
-        echo "diff=$DIFF" >> $GITHUB_OUTPUT
-        echo "Diff found: $DIFF"
-
-    - name: Check for override in PR description
-      id: checkOverridePR
-      if: contains(needs.gitVersion.outputs.branchName, 'pull')
-      env:
-        PR_DESCRIPTION: ${{ github.event.pull_request.body }}
-      run: |
-        guiLine=$(awk -F'+includeGUI: ' '{print $2}' <<< $PR_DESCRIPTION | xargs)
-        echo "guiLine=$guiLine" >> $GITHUB_OUTPUT
-        echo "PR GUI override: $guiLine"
-
-    - name: Check for override in merge commit
-      if: contains(needs.gitVersion.outputs.branchName, 'main')
-      id: checkOverrideMerge
-      env:
-        MERGE_COMMIT: ${{ github.event.head_commit.message }}
-      run: |
-        guiLine=$(awk -F'+includeGUI: ' '{print $2}' <<< $MERGE_COMMIT | xargs)
-        echo "guiLine=$guiLine" >> $GITHUB_OUTPUT
-        echo "Merge GUI override: $guiLine"
-
-    - name: Determine override
-      id: determineOverride
-      if: |
-        steps.checkOverridePR.outputs.guiLine != '' ||
-        steps.checkOverrideMerge.outputs.guiLine != ''
-      env:
-        PR_GUILINE: ${{steps.checkOverridePR.outputs.guiLine}}
-        MERGE_GUILINE: ${{steps.checkOverrideMerge.outputs.guiLine}}
-      run: |
-        if [[ "$PR_GUILINE" == "false" || "$MERGE_GUILINE" == "false" ]]; then
-          echo "override=false" >> $GITHUB_OUTPUT
-        elif [[ "$PR_GUILINE" == "true" || "$MERGE_GUILINE" == "true" ]]; then
-          echo "override=true" >> $GITHUB_OUTPUT
-        else
-          echo "override=" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Echo override
-      id: echoOverride
-      if: |
-        steps.checkOverridePR.outputs.guiLine != '' ||
-        steps.checkOverrideMerge.outputs.guiLine != ''
-      run: |
-        echo "Final override value: ${{ steps.determineOverride.outputs.override }}"
-
-  buildAndTestGUI:
-    name: Build and Test GUI
-    needs: [checkWhetherGUIBuildNeeded]
-    if: |
-      (needs.checkWhetherGUIBuildNeeded.outputs.diff != '' &&
-      needs.checkWhetherGUIBuildNeeded.outputs.override != 'false') ||
-      needs.checkWhetherGUIBuildNeeded.outputs.override == 'true'
-    runs-on: windows-latest
+  version-intent:
+    name: Version intent
+    if: github.event_name == 'pull_request'
+    uses: yaron-E92/AutoDev/.github/workflows/version-intent.yml@7190410c74ab6674d1c8cc647b178bbc4b5cdd54
+    with:
+      pr_body: ${{ github.event.pull_request.body }}
+      head: ${{ github.sha }}
     permissions:
-      checks: write
-      pull-requests: write
+      contents: read
+
+  headless:
+    name: Headless .NET validation
+    needs: [baseline]
+    uses: yaron-E92/AutoDev/.github/workflows/profile-dotnet.yml@7190410c74ab6674d1c8cc647b178bbc4b5cdd54
+    with:
+      ref: ${{ github.sha }}
+      runner: windows-latest
+      global_json_file: global.json
+      setup_command: bash scripts/ci-configure-nuget.sh
+      restore_command: dotnet restore OtChaim.NoGUI.slnf
+      build_command: dotnet build OtChaim.NoGUI.slnf --configuration NoGUI --no-restore
+      test_command: |
+        set -euo pipefail
+        mkdir -p artifacts/ci/headless
+        dotnet test OtChaim.NoGUI.slnf \
+          --configuration NoGUI \
+          --no-build \
+          --no-restore \
+          --logger 'trx;LogFilePrefix=headless' \
+          --results-directory artifacts/ci/headless \
+          --collect:'XPlat Code Coverage;Format=opencover' \
+          --verbosity normal
+      test_results_path: artifacts/ci/headless/**
+      artifact_name: otchaim-headless-results
+    secrets:
+      nuget_token: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
       contents: read
       packages: read
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        persist-credentials: false
+  maui:
+    name: MAUI product validation
+    needs: [baseline]
+    uses: yaron-E92/AutoDev/.github/workflows/profile-maui.yml@7190410c74ab6674d1c8cc647b178bbc4b5cdd54
+    with:
+      ref: ${{ github.sha }}
+      global_json_file: global.json
+      headless_enabled: false
 
-    - name: Setup .NET
-      id: setupDotnet
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 8.0.x
+      android_enabled: true
+      android_runner: ubuntu-latest
+      android_setup_command: |
+        bash scripts/ci-configure-nuget.sh
+        dotnet workload install maui-android --skip-manifest-update
+      android_restore_command: dotnet restore OtChaim.Presentation.MAUI/OtChaim.Presentation.MAUI.csproj
+      android_build_command: dotnet build OtChaim.Presentation.MAUI/OtChaim.Presentation.MAUI.csproj --configuration Release --framework net8.0-android --no-restore
+      android_test_command: find OtChaim.Presentation.MAUI/bin/Release/net8.0-android -type f -name 'OtChaim.Presentation.MAUI.dll' -print -quit | grep -q .
 
-    - name: Ensure GitHub NuGet Source
-      shell: pwsh
-      env:
-        GITHUB_NUGET_TOKEN: ${{ secrets.YARE92_NUGET_TOKEN_EXP_17JUN2026 }}
-      run: |
-        dotnet nuget add source https://nuget.pkg.github.com/yaron-E92/index.json `
-          -n github `
-          -u Yaron-E92 `
-          -p $env:GITHUB_NUGET_TOKEN `
-          --store-password-in-clear-text
+      windows_enabled: true
+      windows_runner: windows-latest
+      windows_setup_command: |
+        bash scripts/ci-configure-nuget.sh
+        dotnet workload install maui-windows --skip-manifest-update
+      windows_restore_command: dotnet restore OtChaim.Presentation.MAUI/OtChaim.Presentation.MAUI.csproj -p:OtChaimWindowsOnly=true
+      windows_build_command: dotnet build OtChaim.Presentation.MAUI/OtChaim.Presentation.MAUI.csproj --configuration Release --framework net8.0-windows10.0.19041.0 -p:OtChaimWindowsOnly=true
+      windows_test_command: find OtChaim.Presentation.MAUI/bin/Release/net8.0-windows10.0.19041.0 -type f -name 'OtChaim.Presentation.MAUI.dll' -print -quit | grep -q .
+    secrets:
+      nuget_token: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: read
+      packages: read
 
-    - name: Install workload
-      shell: pwsh
-      run: |
-        dotnet workload install maui-android wasi-experimental
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "Failed to install workloads"
-          exit 1
-        }
-
-    - name: Setup Android SDK
-      shell: pwsh
-      run: |
-        Write-Host "Checking GUI changes: ${{needs.checkWhetherGUIBuildNeeded.outputs.diff}}"
-        & "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat" "tools"
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "Failed to setup Android SDK"
-          exit 1
-        }
-
-    - name: Restore dependencies
-      shell: pwsh
-      run: |
-        dotnet restore ./OtChaim.Presentation.MAUI/OtChaim.Presentation.MAUI.csproj
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "Failed to restore dependencies"
-          exit 1
-        }
-
-    - name: Build
-      id: build
-      shell: pwsh
-      run: |
-        dotnet build --no-restore ./OtChaim.Presentation.MAUI/OtChaim.Presentation.MAUI.csproj
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "Build failed"
-          exit 1
-        }
-
-  tagAndRelease:
-    name: Tag and Release
-    needs: [gitVersion, buildAndTestWithoutGUI, buildAndTestGUI]
-    if:  |
-      (needs.buildAndTestGUI.result == 'skipped' || needs.buildAndTestGUI.result == 'success') &&
-      contains(needs.gitVersion.outputs.branchName, 'main')
+  ci-gate:
+    name: CI gate
+    if: always()
+    needs: [baseline, version-intent, headless, maui]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Require version policy and product validation
+        shell: bash
+        env:
+          BASELINE: ${{ needs.baseline.result }}
+          VERSION_INTENT: ${{ needs.version-intent.result }}
+          HEADLESS: ${{ needs.headless.result }}
+          MAUI: ${{ needs.maui.result }}
+        run: |
+          set -euo pipefail
+          if [[ "$BASELINE" != 'success' ||
+                "$HEADLESS" != 'success' ||
+                "$MAUI" != 'success' ]]; then
+            echo "Required CI failed: baseline=$BASELINE headless=$HEADLESS maui=$MAUI" >&2
+            exit 1
+          fi
+
+          if [[ "$VERSION_INTENT" != 'success' && "$VERSION_INTENT" != 'skipped' ]]; then
+            echo "Version intent validation failed: $VERSION_INTENT" >&2
+            exit 1
+          fi
+
+          echo 'OtChaim authoritative CI passed.'
+
+  version-tag:
+    name: Advance version tag
+    needs: [ci-gate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.ci-gate.result == 'success'
+    uses: yaron-E92/AutoDev/.github/workflows/version-tag.yml@7190410c74ab6674d1c8cc647b178bbc4b5cdd54
+    with:
+      head: ${{ github.sha }}
+      branch: main
     permissions:
       contents: write
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Fetch all tags
-      run: git fetch --tags --force
-    - name: Tag on main
-      run: |
-          git config --global user.name "Github actions: gitversion"
-          git config --global user.email "gitversion@github-actions.com"
-          # Check if tag already exists
-          if git rev-parse "${{ needs.gitVersion.outputs.semVer}}" >/dev/null 2>&1; then
-            echo "Tag ${{ needs.gitVersion.outputs.semVer}} already exists, skipping tag creation"
-          else
-            echo "Creating tag ${{ needs.gitVersion.outputs.semVer}}"
-            git tag -a "${{ needs.gitVersion.outputs.semVer}}" -m "Version ${{ needs.gitVersion.outputs.semVer}}"
-            git push --tags
-          fi
-    - name: Check if package version already exists on GitHub Packages
-      id: check-package
-      env:
-        GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        VERSION="${{ needs.gitVersion.outputs.semVer }}"
-        echo "Checking for version $VERSION of $PACKAGE_NAME"
-
-        RESPONSE=$(curl -s -H "Authorization: Bearer ${GITHUB_API_TOKEN}" \
-          -H "Accept: application/vnd.github+json" \
-          "https://api.github.com/users/yaron-E92/packages/nuget/Yaref92.Events/versions")
-    
-        EXISTS=$(echo "$RESPONSE" | jq -r --arg VERSION "$VERSION" '.[] | select(.name == $VERSION) | .name')
-    
-        if [[ "$EXISTS" == "$VERSION" ]]; then
-          echo "skip=true" >> $GITHUB_OUTPUT
-          echo "Version $VERSION already exists. Skipping push."
-        else
-          echo "skip=false" >> $GITHUB_OUTPUT
-          echo "Version $VERSION not found. Proceeding with push."
-        fi
-    - name: Pack Nuget
-      if: steps.check-package.outputs.skip == 'false'
-      run: dotnet pack -c Release -o out /p:AssemblyVersion=${{ needs.gitVersion.outputs.assemblySemFileVer }} /p:FileVersion=${{ needs.gitVersion.outputs.assemblySemFileVer }} /p:InformationalVersion=${{ needs.gitVersion.outputs.informationalVersion }} /p:Version=${{ needs.gitVersion.outputs.semVer }} /p:PackageVersion=${{ needs.gitVersion.outputs.nugetVersion }} ./Yaref92.Events.sln
-    - name: Release NuGet package
-      if: steps.check-package.outputs.skip == 'false'
-      run: |
-        for file in ./out/*.nupkg; do
-          echo "Pushing $file..."
-          dotnet nuget push "$file" \
-            --api-key ${GITHUB_TOKEN} \
-            --source "https://nuget.pkg.github.com/yaron-E92/index.json" \
-            --skip-duplicate
-        done
-      env:
-        GITHUB_TOKEN: ${{ secrets.YARE92_NUGET_PUSH_TOKEN_EXP_29JUN2026 }}
-
-  sonar:
-    name: SonarCloud - Build and analyze
-    runs-on: windows-latest
-    needs: [buildAndTestWithoutGUI, checkWhetherGUIBuildNeeded]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: Download Coverage Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: code-coverage
-          path: coverage
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: 17
-          distribution: 'zulu' # Alternative distribution options are available.
-      - name: Cache SonarQube Cloud packages
-        uses: actions/cache@v4
-        with:
-          path: ~\.sonar\cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-      - name: Cache SonarQube Cloud scanner
-        id: cache-sonar-scanner
-        uses: actions/cache@v4
-        with:
-          path: .\.sonar\scanner
-          key: ${{ runner.os }}-sonar-scanner
-          restore-keys: ${{ runner.os }}-sonar-scanner
-      - name: Install SonarQube Cloud scanner
-        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path .\.sonar\scanner
-          dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
-      - name: Ensure GitHub NuGet Source
-        env:
-          GITHUB_NUGET_TOKEN: ${{ secrets.YARE92_NUGET_TOKEN_EXP_17JUN2026 }}
-        run: |
-          dotnet nuget add source https://nuget.pkg.github.com/yaron-E92/index.json `
-            -n github `
-            -u Yaron-E92 `
-            -p $env:GITHUB_NUGET_TOKEN `
-            --store-password-in-clear-text
-      - name: Build and analyze No GUI
-        if: |
-          (needs.checkWhetherGUIBuildNeeded.outputs.diff == '' &&
-          needs.checkWhetherGUIBuildNeeded.outputs.override != 'true') ||
-          needs.checkWhetherGUIBuildNeeded.outputs.override == 'false'
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        shell: pwsh
-        run: |
-          .\.sonar\scanner\dotnet-sonarscanner begin `
-            /k:"com-mit-group_OtChaim" `
-            /o:"com-mit-group" `
-            /d:sonar.token="$env:SONAR_TOKEN" `
-            /d:sonar.host.url="https://sonarcloud.io" `
-            /d:sonar.projectBaseDir="${{ github.workspace }}" `
-            /d:sonar.cs.opencover.reportsPaths=coverage/**/coverage*.opencover.xml
-          dotnet build -c Release OtChaim.NoGUI.slnf
-          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
-
-      - name: Build and analyze With GUI
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        if: |
-          (needs.checkWhetherGUIBuildNeeded.outputs.diff != '' &&
-          needs.checkWhetherGUIBuildNeeded.outputs.override != 'false') ||
-          needs.checkWhetherGUIBuildNeeded.outputs.override == 'true'
-        shell: pwsh
-        run: |
-          .\.sonar\scanner\dotnet-sonarscanner begin `
-            /k:"com-mit-group_OtChaim" `
-            /o:"com-mit-group" `
-            /d:sonar.token="$env:SONAR_TOKEN" `
-            /d:sonar.host.url="https://sonarcloud.io" `
-            /d:sonar.projectBaseDir="${{ github.workspace }}" `
-            /d:sonar.cs.opencover.reportsPaths=coverage/**/coverage*.opencover.xml
-          dotnet build -c Release
-          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
+      pull-requests: read
