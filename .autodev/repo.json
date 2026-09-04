@@ -1,0 +1,8 @@
+{
+  "ux": {
+    "enabled": true,
+    "artifact": "oci://ghcr.io/yaron-e92/ux/otchaim@sha256:74ee8f869bc51a910667a11e8d74333225d0cc60fef77e4a796b8eec4c2e3a36",
+    "product": "otchaim"
+  },
+  "version": 1
+}
